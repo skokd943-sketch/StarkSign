@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Stark Sign</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#141416">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Stark Sign">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<style>
+:root{
+  --bg:#141416; --blue:#1f23ff; --sky:#4fb8ff; --card:#1f1f24; --text:#fff; --dim:rgba(255,255,255,.62);
+  --ease:cubic-bezier(.2,.9,.25,1.1);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Inter",system-ui,sans-serif;overscroll-behavior:none}
+body{overflow:hidden}
+.glow{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:0}
+.glow i{position:absolute;border-radius:50%;filter:blur(70px);opacity:.5;animation:drift 14s ease-in-out infinite alternate}
+.glow i:nth-child(1){width:300px;height:300px;background:var(--blue);top:-80px;left:-90px}
+.glow i:nth-child(2){width:260px;height:260px;background:var(--sky);bottom:120px;right:-110px;animation-duration:18s;opacity:.32}
+@keyframes drift{to{transform:translate(60px,90px) scale(1.25)}}
+.view{position:fixed;inset:0;overflow-y:auto;z-index:1;padding:calc(env(safe-area-inset-top,0px) + 54px) 18px calc(env(safe-area-inset-bottom,0px) + 130px);
+  opacity:0;transform:translateY(24px) scale(.98);pointer-events:none;transition:opacity .45s var(--ease),transform .55s var(--ease)}
+.view.on{opacity:1;transform:none;pointer-events:auto}
+h1{font-size:44px;line-height:1.05;margin:8px 0 22px;font-weight:800;letter-spacing:-1.2px}
+.brand .st{color:var(--blue)} .brand .sg{color:var(--sky)}
+.brand span span{display:inline-block;animation:letter 1s var(--ease) both;animation-delay:calc(var(--i)*70ms)}
+@keyframes letter{from{opacity:0;transform:translateY(34px) rotate(8deg) scale(.7);filter:blur(8px)}}
+.shine{background:linear-gradient(100deg,var(--blue) 30%,#8fd4ff 48%,var(--sky) 52%,var(--blue) 70%);background-size:250% 100%;
+  -webkit-background-clip:text;background-clip:text}
+.card{border-radius:36px;padding:28px 26px;margin-bottom:18px;position:relative;overflow:hidden;
+  transition:transform .35s var(--ease)}
+.card:active{transform:scale(.97)}
+.card h2{margin:0 0 10px;font-size:26px;line-height:1.15;letter-spacing:-.5px}
+.card p{margin:0;color:var(--dim);font-size:17px;line-height:1.4}
+.c-blue{background:linear-gradient(135deg,#1217ff,#2b3dff);animation:pulse 5s ease-in-out infinite}
+@keyframes pulse{50%{box-shadow:0 0 50px rgba(31,35,255,.55)}}
+.c-sky{background:linear-gradient(160deg,#1f6fff,#4fb8ff 70%,#8fd8ff);min-height:230px}
+.c-sky::after{content:"";position:absolute;inset:-40%;
+  background:conic-gradient(from 0deg,transparent,rgba(255,255,255,.28),transparent 30%);animation:spin 7s linear infinite}
+.c-sky>*{position:relative;z-index:1}
+@keyframes spin{to{transform:rotate(1turn)}}
+.c-dark{background:var(--card)}
+.row{display:flex;align-items:center;gap:14px}
+.ico{width:60px;height:60px;border-radius:16px;flex:none;background:linear-gradient(160deg,var(--blue),var(--sky));
+  display:grid;place-items:center;font-weight:800;font-size:26px}
+.row b{display:block;font-size:19px}.row small{color:var(--dim);font-size:14px}
+.pill{margin-left:auto;background:rgba(79,184,255,.16);color:var(--sky);font-weight:700;padding:8px 16px;border-radius:99px;font-size:15px}
+.set{background:var(--card);border-radius:26px;overflow:hidden;margin-bottom:18px}
+.set div{display:flex;justify-content:space-between;align-items:center;padding:17px 20px;font-size:17px}
+.set div+div{border-top:1px solid rgba(255,255,255,.07)}
+.set em{font-style:normal;color:var(--dim)}
+.sw{width:50px;height:30px;border-radius:99px;background:#3a3a40;position:relative;transition:background .3s;cursor:pointer}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:transform .35s var(--ease)}
+.sw.on{background:var(--blue)} .sw.on::after{transform:translateX(20px)}
+.empty{text-align:center;color:var(--dim);margin-top:70px;font-size:17px;line-height:1.45}
+.empty .ring{width:92px;height:92px;margin:0 auto 20px;border-radius:50%;border:4px solid var(--blue);border-top-color:var(--sky);animation:spin 1.6s linear infinite}
+/* tab bar */
+nav{position:fixed;z-index:5;left:14px;right:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);height:78px;border-radius:40px;
+  background:rgba(40,36,70,.55);backdrop-filter:blur(26px) saturate(1.6);-webkit-backdrop-filter:blur(26px) saturate(1.6);
+  border:1px solid rgba(255,255,255,.12);display:flex;padding:7px}
+nav .bub{position:absolute;top:7px;bottom:7px;left:7px;width:calc((100% - 14px)/3);border-radius:34px;
+  background:rgba(255,255,255,.14);transition:transform .55s var(--ease)}
+nav button{flex:1;position:relative;z-index:1;background:none;border:0;color:#fff;font:600 13px inherit;font-family:inherit;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;transition:color .3s}
+nav button svg{width:28px;height:28px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:transform .5s var(--ease)}
+nav button.on{color:var(--sky)} nav button.on svg{transform:translateY(-2px) scale(1.12)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition-duration:.01s!important}}
+</style>
+</head>
+<body>
+<div class="glow"><i></i><i></i></div>
+
+<section class="view on" id="v0">
+  <h1 class="brand" aria-label="Stark Sign"><span class="st shine"></span> <span class="sg"></span></h1>
+  <div class="card c-blue"><h2>Stark Sign скоро заработает</h2><p>Пока это только оболочка. Рабочая часть появится позже.</p></div>
+  <div class="card c-sky"><h2>Добавь на экран «Домой»</h2><p>Safari → «Поделиться» → «На экран Домой». Приложение откроется без адресной строки.</p></div>
+  <div class="card c-dark"><div class="row"><div class="ico">S</div><div><b>Stark Sign</b><small>Версия 0.1 · бета</small></div><div class="pill">Бета</div></div></div>
+</section>
+
+<section class="view" id="v1">
+  <h1>Приложения</h1>
+  <div class="empty"><div class="ring"></div>Здесь появятся твои приложения.<br>Пока список пуст.</div>
+</section>
+
+<section class="view" id="v2">
+  <h1>Настройки</h1>
+  <div class="set">
+    <div>Анимации <span class="sw on" data-k="anim"></span></div>
+    <div>Уведомления <span class="sw"></span></div>
+    <div>Тёмная тема <span class="sw on"></span></div>
+  </div>
+  <div class="set"><div>Версия <em>0.1</em></div><div>Сборка <em>Stark Sign</em></div></div>
+</section>
+
+<nav>
+  <div class="bub"></div>
+  <button class="on" data-i="0"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="4"/><path d="M8 8h8M8 12h8"/></svg>Главная</button>
+  <button data-i="1"><svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg>Приложения</button>
+  <button data-i="2"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v3M12 18.2v3M2.8 12h3M18.2 12h3M5.5 5.5l2.1 2.1M16.4 16.4l2.1 2.1M18.5 5.5l-2.1 2.1M7.6 16.4l-2.1 2.1"/></svg>Настройки</button>
+</nav>
+
+<script>
+// letter-by-letter title
+const h=document.querySelector('.brand');let n=0;
+[['st','Stark'],['sg','Sign']].forEach(([c,w])=>{
+  const el=h.querySelector('.'+c);
+  [...w].forEach(ch=>{const s=document.createElement('span');s.textContent=ch;s.style.setProperty('--i',n++);el.appendChild(s)});
+});
+// tabs
+const views=[...document.querySelectorAll('.view')],btns=[...document.querySelectorAll('nav button')],bub=document.querySelector('.bub');
+function go(i){
+  views.forEach((v,k)=>v.classList.toggle('on',k===i));
+  btns.forEach((b,k)=>b.classList.toggle('on',k===i));
+  bub.style.transform=`translateX(${i*100}%)`;
+  if(navigator.vibrate)navigator.vibrate(8);
+}
+btns.forEach(b=>b.onclick=()=>go(+b.dataset.i));
+document.querySelectorAll('.sw').forEach(s=>s.onclick=()=>s.classList.toggle('on'));
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
