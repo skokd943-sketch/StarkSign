@@ -276,7 +276,7 @@ app.post('/api/apple/start', appleAccess, appleRateLimit, requireAppleHttps, up.
   appleSessions.set(id,session);
   appleLocks.add(accountKey);
   try {
-    const proc = pty.spawn('sideloader',['starksign','--interactive','--udid',udid,'--input',input,'--output',output],{
+    const proc = pty.spawn('sideloader',['starksign','--udid',udid,'--input',input,'--output',output],{
       name:'xterm-256color',cols:100,rows:30,cwd:'/app',
       env:{...process.env,SIDELOADER_CONFIG_DIR:config,TERM:'xterm-256color'}
     });
