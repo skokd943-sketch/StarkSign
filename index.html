@@ -99,7 +99,7 @@ nav button.on{color:var(--sky)} nav button.on svg{transform:translateY(-2px) sca
 
 <section class="view on" id="v0">
   <h1 class="brand" aria-label="Stark Sign"><span class="st shine"></span> <span class="sg"></span></h1>
-  <div class="card c-blue"><h2>Stark Sign скоро заработает</h2><p>Пока это только оболочка. Рабочая часть появится позже.</p></div>
+  <div class="card c-blue"><h2>Подпись IPA через Apple ID</h2><p>Подпиши IPA с бесплатным Apple ID. Подтверди UDID и введи код 2FA, если Apple его запросит.</p></div>
   <div class="card c-sky"><h2>Добавь на экран «Домой»</h2><p>Safari → «Поделиться» → «На экран Домой». Приложение откроется без адресной строки.</p></div>
   <div class="card c-dark"><div class="row"><div class="ico">S</div><div><b>Stark Sign</b><small>Версия 0.1 · бета</small></div><div class="pill">Бета</div></div></div>
 </section>
@@ -286,10 +286,10 @@ $('#getudid').onclick=async()=>{
     const r=await fetch(srv+'/api/udid/start',{method:'POST'}),j=await r.json();if(!r.ok)throw Error(j.error||'Ошибка сервера');
     localStorage.udidToken=j.token;localStorage.udidServer=srv;out.textContent='Открой профиль и подтверди установку в Настройках iPhone. Запрос действует 20 минут.';
     location.href=j.url;
-    clearInterval(udidPoll);udidPoll=setInterval(async()=>{try{const x=await fetch(srv+'/api/udid/status/'+j.token),v=await x.json();if(v.status==='complete'){clearInterval(udidPoll);localStorage.udidValue=v.udid;out.textContent='UDID получен и проверен: '+v.udid;toast('Устройство подтверждено');}}catch(e){}},3000);
+    clearInterval(udidPoll);udidPoll=setInterval(async()=>{try{const x=await fetch(srv+'/api/udid/status/'+j.token),v=await x.json();if(v.status==='complete'){clearInterval(udidPoll);localStorage.udidValue=v.udid;localStorage.udidValue=v.udid;out.textContent='UDID получен и проверен: '+v.udid;toast('Устройство подтверждено');}}catch(e){}},3000);
   }catch(e){out.textContent=e.message;toast(e.message)}finally{b.disabled=false;b.textContent='Получить UDID автоматически'}
 };
-if(localStorage.udidToken&&localStorage.udidServer){const t=localStorage.udidToken,s=localStorage.udidServer;const checkUdid=async()=>{try{const r=await fetch(s+'/api/udid/status/'+t),v=await r.json();if(v.status==='complete'){clearInterval(udidPoll);localStorage.udidValue=v.udid;$('#udidstatus').textContent='UDID получен и проверен: '+v.udid;}}catch(e){}};checkUdid();udidPoll=setInterval(checkUdid,4000);}
+if(localStorage.udidToken&&localStorage.udidServer){const t=localStorage.udidToken,s=localStorage.udidServer;const checkUdid=async()=>{try{const r=await fetch(s+'/api/udid/status/'+t),v=await r.json();if(v.status==='complete'){clearInterval(udidPoll);localStorage.udidValue=v.udid;localStorage.udidValue=v.udid;$('#udidstatus').textContent='UDID получен и проверен: '+v.udid;}}catch(e){}};checkUdid();udidPoll=setInterval(checkUdid,4000);}
 $('#refresh').onclick=()=>{loadRepo();toast('Список обновлён')};
 setInterval(()=>{if(!document.hidden&&$('#v2').classList.contains('on'))loadRepo()},30000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&$('#v2').classList.contains('on'))loadRepo()});
