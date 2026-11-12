@@ -17,7 +17,7 @@ const app = express();
 app.set('trust proxy', 1);
 app.use((req, res, next) => {
   res.set('Access-Control-Allow-Origin', ORIGIN);
-  res.set('Access-Control-Allow-Headers', 'x-key');
+  res.set('Access-Control-Allow-Headers', 'x-key, content-type');
   res.set('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
   if (req.method === 'OPTIONS') return res.end();
   next();
