@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <title>Stark Sign</title>
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#141416">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -17,6 +17,8 @@
   --ease:cubic-bezier(.2,.9,.25,1.1);
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body,.view{touch-action:pan-y;-webkit-text-size-adjust:100%}
+button,a,input,select{touch-action:manipulation}
 html,body{margin:0;height:100%;background:var(--bg);color:var(--text);
   font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Inter",system-ui,sans-serif;overscroll-behavior:none}
 body{overflow:hidden}
@@ -177,6 +179,10 @@ btns.forEach(b=>b.onclick=()=>go(+b.dataset.i));
 document.querySelectorAll('.sw').forEach(s=>s.onclick=()=>s.classList.toggle('on'));
 
 const $=q=>document.querySelector(q);
+// запрет зума двумя пальцами и двойным тапом
+['gesturestart','gesturechange','gestureend'].forEach(t=>document.addEventListener(t,e=>e.preventDefault()));
+document.addEventListener('touchmove',e=>{if(e.touches.length>1)e.preventDefault()},{passive:false});
+let lt=0;document.addEventListener('touchend',e=>{const n=Date.now();if(n-lt<350)e.preventDefault();lt=n},{passive:false});
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fmt=b=>b>1048576?(b/1048576).toFixed(1)+' МБ':Math.ceil(b/1024)+' КБ';
 function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),2600)}

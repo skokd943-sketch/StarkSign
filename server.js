@@ -82,3 +82,18 @@ setInterval(() => {
 }, 3600 * 1000);
 
 app.listen(process.env.PORT || 3000, () => console.log('Stark Sign server started'));
+
+// Разведка: при RECON=1 печатает в логи справку Sideloader (без Apple ID, без сети)
+if (process.env.RECON === '1') {
+  const cmds = [['version'], ['-h'], ['sign', '-h'], ['install', '-h'], ['team', '-h'], ['device', '-h'], ['cert', '-h'], ['app-id', '-h'], ['tool', '-h']];
+  (async () => {
+    execFile('sh', ['-c', 'which sideloader; ldd $(which sideloader) | grep -i "not found"'], (e, so, se) => console.log('RECON binary\n' + (so || '') + (se || '') + (e ? ' (нет бинарника или все библиотеки на месте)' : '')));
+    for (const a of cmds) {
+      await new Promise(r => execFile('sideloader', a, { timeout: 20000 }, (e, so, se) => {
+        console.log('RECON sideloader ' + a.join(' ') + '\n' + (so || '') + (se || '') + (e && !so && !se ? 'ERR ' + e.message : ''));
+        r();
+      }));
+    }
+    console.log('RECON done');
+  })();
+}
