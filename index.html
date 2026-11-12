@@ -20,12 +20,12 @@
 html,body{margin:0;height:100%;background:var(--bg);color:var(--text);
   font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Inter",system-ui,sans-serif;overscroll-behavior:none}
 body{overflow:hidden}
-.glow{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:0}
+.glow{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:hidden;z-index:0}
 .glow i{position:absolute;border-radius:50%;filter:blur(70px);opacity:.5;animation:drift 14s ease-in-out infinite alternate}
 .glow i:nth-child(1){width:300px;height:300px;background:var(--blue);top:-80px;left:-90px}
 .glow i:nth-child(2){width:260px;height:260px;background:var(--sky);bottom:120px;right:-110px;animation-duration:18s;opacity:.32}
 @keyframes drift{to{transform:translate(60px,90px) scale(1.25)}}
-.view{position:fixed;inset:0;overflow-y:auto;z-index:1;padding:calc(env(safe-area-inset-top,0px) + 54px) 18px calc(env(safe-area-inset-bottom,0px) + 130px);
+.view{position:fixed;top:0;left:0;width:100%;height:100%;overflow-y:auto;z-index:1;padding:calc(env(safe-area-inset-top,0px) + 54px) 18px 130px;
   opacity:0;transform:translateY(24px) scale(.98);pointer-events:none;transition:opacity .45s var(--ease),transform .55s var(--ease)}
 .view.on{opacity:1;transform:none;pointer-events:auto}
 h1{font-size:44px;line-height:1.05;margin:8px 0 22px;font-weight:800;letter-spacing:-1.2px}
@@ -62,15 +62,33 @@ h1{font-size:44px;line-height:1.05;margin:8px 0 22px;font-weight:800;letter-spac
 .empty{text-align:center;color:var(--dim);margin-top:70px;font-size:17px;line-height:1.45}
 .empty .ring{width:92px;height:92px;margin:0 auto 20px;border-radius:50%;border:4px solid var(--blue);border-top-color:var(--sky);animation:spin 1.6s linear infinite}
 /* tab bar */
-nav{position:fixed;z-index:5;left:14px;right:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);height:78px;border-radius:40px;
+nav{position:fixed;z-index:5;left:14px;right:14px;bottom:8px;height:78px;border-radius:40px;
   background:rgba(40,36,70,.55);backdrop-filter:blur(26px) saturate(1.6);-webkit-backdrop-filter:blur(26px) saturate(1.6);
   border:1px solid rgba(255,255,255,.12);display:flex;padding:7px}
-nav .bub{position:absolute;top:7px;bottom:7px;left:7px;width:calc((100% - 14px)/3);border-radius:34px;
+nav .bub{position:absolute;top:7px;bottom:7px;left:7px;width:calc((100% - 14px)/4);border-radius:34px;
   background:rgba(255,255,255,.14);transition:transform .55s var(--ease)}
-nav button{flex:1;position:relative;z-index:1;background:none;border:0;color:#fff;font:600 13px inherit;font-family:inherit;
+nav button{flex:1;position:relative;z-index:1;background:none;border:0;color:#fff;font-weight:600;font-size:11.5px;font-family:inherit;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;transition:color .3s}
 nav button svg{width:28px;height:28px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:transform .5s var(--ease)}
 nav button.on{color:var(--sky)} nav button.on svg{transform:translateY(-2px) scale(1.12)}
+
+.app .view,.app .glow{height:var(--H)}
+.app nav{bottom:auto;top:calc(var(--H) - 86px)}
+.sub{display:flex;justify-content:space-between;align-items:center;margin:26px 4px 12px;font-size:20px;font-weight:700}
+.sub:first-of-type{margin-top:0}
+.cert{background:var(--card);border-radius:26px;padding:16px;margin-bottom:12px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.cert .ico{font-size:18px}.cert>div:nth-child(2){flex:1;min-width:120px;word-break:break-all}
+.cert b{font-size:17px}.cert small{display:block;color:var(--dim);font-size:13px;margin-top:3px;word-break:break-word}
+.mini{background:rgba(79,184,255,.16);color:var(--sky);border:0;font:600 14px inherit;font-family:inherit;padding:8px 14px;border-radius:99px;text-decoration:none}
+.mini+.mini{margin-left:6px}
+.hint{color:var(--dim);font-size:15px;margin:4px 6px 12px;line-height:1.4}
+.form{background:var(--card);border-radius:26px;padding:16px;display:grid;gap:10px;margin-bottom:12px}
+.form label{font-size:13px;color:var(--dim);display:grid;gap:6px}
+.form input{width:100%;background:#2a2a31;border:0;border-radius:14px;padding:13px;color:#fff;font:16px inherit;font-family:inherit}
+.btn{background:linear-gradient(135deg,var(--blue),#3a8bff);color:#fff;border:0;border-radius:16px;padding:14px;font:700 17px inherit;font-family:inherit;transition:transform .3s var(--ease)}
+.btn:active{transform:scale(.96)}
+#toast{position:fixed;z-index:9;left:50%;top:calc(env(safe-area-inset-top,0px) + 14px);transform:translate(-50%,-90px);background:rgba(40,40,60,.9);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);padding:13px 20px;border-radius:99px;font-weight:600;transition:transform .5s var(--ease);max-width:90%;text-align:center}
+#toast.on{transform:translate(-50%,0)}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition-duration:.01s!important}}
 </style>
 </head>
@@ -90,6 +108,26 @@ nav button.on{color:var(--sky)} nav button.on svg{transform:translateY(-2px) sca
 </section>
 
 <section class="view" id="v2">
+  <h1>Сертификаты</h1>
+  <p class="sub">Общие <button class="mini" id="refresh">Обновить</button></p>
+  <div id="repo"><p class="hint">Загрузка…</p></div>
+  <p class="sub">Мой сертификат</p>
+  <div class="form">
+    <label>Файл .p12<input type="file" id="p12" accept=".p12,.pfx"></label>
+    <label>Пароль<input type="password" id="pass" placeholder="Пароль сертификата" autocomplete="off"></label>
+    <label>Профиль .mobileprovision (необязательно)<input type="file" id="prov" accept=".mobileprovision"></label>
+    <button class="btn" id="add">Добавить сертификат</button>
+  </div>
+  <div id="mine"></div>
+  <p class="sub">Apple ID</p>
+  <div class="form">
+    <label>Apple ID<input type="email" id="aid" placeholder="name@icloud.com" autocomplete="off"></label>
+    <label>Пароль<input type="password" id="apw" autocomplete="off"></label>
+    <button class="btn" id="login">Войти</button>
+  </div>
+</section>
+
+<section class="view" id="v3">
   <h1>Настройки</h1>
   <div class="set">
     <div>Анимации <span class="sw on" data-k="anim"></span></div>
@@ -99,11 +137,13 @@ nav button.on{color:var(--sky)} nav button.on svg{transform:translateY(-2px) sca
   <div class="set"><div>Версия <em>0.1</em></div><div>Сборка <em>Stark Sign</em></div></div>
 </section>
 
+<div id="toast"></div>
 <nav>
   <div class="bub"></div>
   <button class="on" data-i="0"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="4"/><path d="M8 8h8M8 12h8"/></svg>Главная</button>
   <button data-i="1"><svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg>Приложения</button>
-  <button data-i="2"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v3M12 18.2v3M2.8 12h3M18.2 12h3M5.5 5.5l2.1 2.1M16.4 16.4l2.1 2.1M18.5 5.5l-2.1 2.1M7.6 16.4l-2.1 2.1"/></svg>Настройки</button>
+  <button data-i="2"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg>Сертификаты</button>
+  <button data-i="3"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v3M12 18.2v3M2.8 12h3M18.2 12h3M5.5 5.5l2.1 2.1M16.4 16.4l2.1 2.1M18.5 5.5l-2.1 2.1M7.6 16.4l-2.1 2.1"/></svg>Настройки</button>
 </nav>
 
 <script>
@@ -120,9 +160,58 @@ function go(i){
   btns.forEach((b,k)=>b.classList.toggle('on',k===i));
   bub.style.transform=`translateX(${i*100}%)`;
   if(navigator.vibrate)navigator.vibrate(8);
+  if(i===2)loadRepo();
 }
 btns.forEach(b=>b.onclick=()=>go(+b.dataset.i));
 document.querySelectorAll('.sw').forEach(s=>s.onclick=()=>s.classList.toggle('on'));
+
+const $=q=>document.querySelector(q);
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt=b=>b>1048576?(b/1048576).toFixed(1)+' МБ':Math.ceil(b/1024)+' КБ';
+function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),2600)}
+// высота экрана для установленного приложения (прижимает панель к низу)
+function fit(){if(navigator.standalone||matchMedia('(display-mode: standalone)').matches){
+  document.documentElement.classList.add('app');
+  document.documentElement.style.setProperty('--H',Math.max(innerHeight,innerWidth<innerHeight?screen.height:screen.width)+'px')}}
+fit();addEventListener('resize',fit);addEventListener('orientationchange',()=>setTimeout(fit,300));
+// репозиторий: owner и repo берутся из адреса сайта
+const host=location.hostname,seg=location.pathname.split('/')[1]||'';
+const owner=host.split('.')[0],repo=(seg&&!seg.includes('.'))?seg:host;
+const row=(n,sub,act)=>`<div class="cert"><div class="ico">P12</div><div><b>${esc(n)}</b><small>${sub}</small></div><div>${act}</div></div>`;
+async function loadRepo(){
+  const el=$('#repo');
+  try{
+    const r=await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/certs?_=${Date.now()}`,{cache:'no-store'});
+    const f=r.ok?await r.json():[];
+    const out=[];
+    for(const p of f.filter(x=>/\.p12$/i.test(x.name))){
+      const b=p.name.replace(/\.p12$/i,''),L=b.toLowerCase();
+      const t=f.find(x=>x.name.toLowerCase()===L+'.txt'),m=f.find(x=>x.name.toLowerCase()===L+'.mobileprovision');
+      let pw='';if(t){try{pw=(await(await fetch(t.download_url+'?_='+Date.now())).text()).trim()}catch(e){}}
+      out.push(row(b,fmt(p.size)+(pw?' · пароль: '+esc(pw):''),
+        `<a class="mini" href="${p.download_url}" download>Скачать</a>`+(m?`<a class="mini" href="${m.download_url}" download>Профиль</a>`:'')));
+    }
+    el.innerHTML=out.join('')||'<p class="hint">Администратор пока не добавил сертификаты.</p>';
+  }catch(e){el.innerHTML='<p class="hint">Не удалось загрузить список. Проверь интернет.</p>'}
+}
+// свои сертификаты хранятся только на этом устройстве
+const db=new Promise((ok,no)=>{const r=indexedDB.open('stark-sign',1);r.onupgradeneeded=()=>r.result.createObjectStore('certs',{keyPath:'id',autoIncrement:true});r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)});
+const tx=async(m,f)=>{const d=await db;return new Promise((ok,no)=>{const t=d.transaction('certs',m),q=f(t.objectStore('certs'));t.oncomplete=()=>ok(q.result);t.onerror=()=>no(t.error)})};
+async function loadMine(){
+  try{const l=await tx('readonly',s=>s.getAll());
+  $('#mine').innerHTML=l.map(c=>row(c.name,fmt(c.size)+(c.prov?' · с профилем':''),`<button class="mini" data-del="${c.id}">Удалить</button>`)).join('')||'<p class="hint">Своих сертификатов пока нет.</p>'}catch(e){}
+}
+$('#add').onclick=async()=>{
+  const f=$('#p12').files[0];if(!f)return toast('Выбери файл .p12');
+  try{await tx('readwrite',s=>s.add({name:f.name,size:f.size,pass:$('#pass').value,p12:f,prov:$('#prov').files[0]||null}));
+  $('#p12').value=$('#pass').value=$('#prov').value='';toast('Сертификат добавлен');loadMine()}catch(e){toast('Не удалось сохранить')}
+};
+$('#mine').onclick=async e=>{const id=e.target.dataset.del;if(!id)return;await tx('readwrite',s=>s.delete(+id));toast('Сертификат удалён');loadMine()};
+$('#login').onclick=()=>toast('Вход через Apple ID скоро появится');
+$('#refresh').onclick=()=>{loadRepo();toast('Список обновлён')};
+setInterval(()=>{if(!document.hidden&&$('#v2').classList.contains('on'))loadRepo()},30000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&$('#v2').classList.contains('on'))loadRepo()});
+loadMine();loadRepo();
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
 </body>
