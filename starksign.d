@@ -117,14 +117,14 @@ struct StarkSignCommand {
 
         sideloadSign(appBundle, identity, profiles, (double progress) {}, true, team.teamId);
 
-        auto out = absolutePath(output);
-        auto outDir = dirName(out);
-        if (!exists(outDir)) mkdirRecurse(outDir);
-        if (exists(out)) remove(out);
-        auto result = executeShell("cd " ~ appBundle.tempPath ~ " && zip -qr " ~ out ~ " Payload");
-        enforce(result.status == 0 && exists(out), "Failed to package signed IPA: " ~ result.output);
+        auto outputPath = absolutePath(output);
+        auto outputDir = dirName(outputPath);
+        if (!exists(outputDir)) mkdirRecurse(outputDir);
+        if (exists(outputPath)) remove(outputPath);
+        auto result = executeShell("cd " ~ appBundle.tempPath ~ " && zip -qr " ~ outputPath ~ " Payload");
+        enforce(result.status == 0 && exists(outputPath), "Failed to package signed IPA: " ~ result.output);
 
-        writeln("STARKSIGN_SUCCESS:", out);
+        writeln("STARKSIGN_SUCCESS:", outputPath);
         return 0;
     }
 }
