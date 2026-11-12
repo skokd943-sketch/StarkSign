@@ -187,7 +187,7 @@ app.post('/api/udid/response/:token', express.raw({type:()=>true,limit:'256kb'})
     if (!issuer.includes('CN=Apple iPhone Device CA')) throw new Error('Signer is not an Apple iPhone device certificate');
     const attrs=plist.parse(fs.readFileSync(decoded,'utf8'));
     const udid=String(attrs.UDID||'').toUpperCase(), challenge=String(attrs.CHALLENGE||attrs.Challenge||'');
-    if (!/^[A-F0-9]{ 40 }$/.test(udid) || !crypto.timingSafeEqual(Buffer.from(challenge),Buffer.from(session.challenge))) throw new Error('Invalid UDID or challenge');
+    if (!/^[A-F0-9]{40}$/.test(udid) || !crypto.timingSafeEqual(Buffer.from(challenge),Buffer.from(session.challenge))) throw new Error('Invalid UDID or challenge');
     session.used=true; session.udid=udid; session.completed=Date.now();
     const store=path.join(ROOT,'udids.json'); let rows=[];
     try { rows=JSON.parse(fs.readFileSync(store,'utf8')); if(!Array.isArray(rows)) rows=[]; } catch(_){}
