@@ -22,7 +22,8 @@ RUN ( curl -fsSL https://github.com/ldc-developers/ldc/releases/download/v1.36.0
  && sed -i 's/sslSetVerifyPeer(false)/sslSetVerifyPeer(true)/g' source/app/package.d \
  && cd frontends/cli \
  && dub build -b release --compiler=ldc2 2>&1 | tee /tmp/sideloader-build.log \
- && cp ../../bin/sideloader /usr/local/bin/sideloader ) || (echo "SIDELOADER_BUILD_FAILED" && exit 1)
+ && cp ../../bin/sideloader /usr/local/bin/sideloader \
+ && sideloader starksign --help >/dev/null ) || (echo "SIDELOADER_BUILD_FAILED" && exit 1)
 
 WORKDIR /app
 COPY package.json .
