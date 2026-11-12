@@ -16,7 +16,7 @@ RUN ( curl -fsSL https://github.com/ldc-developers/ldc/releases/download/v1.36.0
  && git clone --depth 1 https://github.com/Dadoum/Sideloader /opt/sideloader && cd /opt/sideloader \
  && cp /tmp/starksign.d frontends/cli/source/starksign.d \
  && sed -i '/^import tool;$/a import starksign;' frontends/cli/source/cli_frontend.d \
- && sed -i 's/(ToolCommand cmd) => cmd(),/(ToolCommand cmd) => cmd(),\\n                (StarkSignCommand cmd) => cmd(),/' frontends/cli/source/cli_frontend.d \
+ && sed -i '/(ToolCommand cmd) => cmd(),/a\                (StarkSignCommand cmd) => cmd(),' frontends/cli/source/cli_frontend.d \
  && sed -i 's/ToolCommand, VersionCommand/ToolCommand, StarkSignCommand, VersionCommand/' frontends/cli/source/cli_frontend.d \
  && sed -i 's/sslSetVerifyPeer(false)/sslSetVerifyPeer(true)/g' source/server/appleaccount.d \
  && sed -i 's/sslSetVerifyPeer(false)/sslSetVerifyPeer(true)/g' source/app/package.d \
