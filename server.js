@@ -139,7 +139,7 @@ ensureProfileSigner();
 const xmlEsc = v => String(v).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function plistString(v) { return '<string>'+xmlEsc(v)+'</string>'; }
 function profileXml(token, challenge, req) {
-  const base = process.env.PUBLIC_URL || ('https://' + req.get('host'));
+  const base = (process.env.PUBLIC_URL || ('https://' + req.get('host'))).replace(/\/+$/,'');
   const payload = '<dict><key>PayloadType</key>'+plistString('Profile Service')+
     '<key>PayloadVersion</key><integer>1</integer><key>PayloadIdentifier</key>'+plistString('com.starksign.udid.profile-service')+
     '<key>PayloadUUID</key>'+plistString(crypto.randomUUID())+
@@ -158,15 +158,28 @@ function signedProfile(xml, outFile) {
 }
 app.post('/api/udid/start', (req,res) => {
   const ip = String(req.ip || req.socket.remoteAddress || 'unknown');
-  const now = Date.now(), recent = (enrollRate.get(ip)||[]).filter(t=>now-t<60*60*1000);
-  if (recent.length >= 5) return res.status(429).json({error:'Слишком много запросов. Попробуй через час.'});
+  const now = Date.now();
+
+  // Reuse an active request from this device/IP instead of consuming another rate-limit slot.
+  for (const [existingToken, existing] of enrollments) {
+    if (existing.clientIp === ip && !existing.used && now-existing.created < 20*60*1000) {
+      const base = (process.env.PUBLIC_URL || ('https://' + req.get('host'))).replace(/\/+$/,'');
+      return res.json({url:base+'/enroll/'+existingToken+'.mobileconfig',token:existingToken,expiresIn:Math.max(0,Math.floor((20*60*1000-(now-existing.created))/1000)),reused:true});
+    }
+  }
+
+  const recent = (enrollRate.get(ip)||[]).filter(t=>now-t<60*60*1000);
+  if (recent.length >= 10) return res.status(429).json({error:'Лимит новых запросов UDID: 10 в час. Уже созданный запрос можно использовать повторно.'});
   recent.push(now); enrollRate.set(ip,recent);
   const token = crypto.randomBytes(32).toString('hex');
-  enrollments.set(token,{challenge:crypto.randomBytes(32).toString('hex'),created:now,used:false,udid:null});
-  const url = (process.env.PUBLIC_URL || ('https://'+req.get('host'))).replace(/\/$/,'')+'/enroll/'+token+'.mobileconfig';
-  res.json({url,token,expiresIn:1200});
+  enrollments.set(token,{challenge:crypto.randomBytes(32).toString('hex'),created:now,used:false,udid:null,clientIp:ip});
+  const base = (process.env.PUBLIC_URL || ('https://' + req.get('host'))).replace(/\/+$/,'');
+  const url = base+'/enroll/'+token+'.mobileconfig';
+  console.info('[UDID] enrollment created/reused; ip:',ip,'token:',token.slice(0,8));
+  res.json({url,token,expiresIn:1200,reused:false});
 });
 app.get('/enroll/:token.mobileconfig', (req,res) => {
+  console.info('[UDID] profile requested; token:',String(req.params.token).slice(0,8));
   const token=req.params.token, session=enrollments.get(token);
   if (!/^[a-f0-9]{64}$/.test(token) || !session || Date.now()-session.created>20*60*1000 || session.used) return res.status(410).send('Ссылка истекла. Создай новый запрос в Stark Sign.');
   try {
@@ -179,17 +192,26 @@ app.get('/enroll/:token.mobileconfig', (req,res) => {
 });
 app.post('/api/udid/response/:token', express.raw({type:()=>true,limit:'256kb'}), (req,res) => {
   const token=req.params.token, session=enrollments.get(token);
+  console.info('[UDID] device callback received; token:',String(token).slice(0,8),'content-type:',req.get('content-type')||'none','bytes:',Buffer.isBuffer(req.body)?req.body.length:0);
   if (!/^[a-f0-9]{64}$/.test(token) || !session || session.used || Date.now()-session.created>20*60*1000) return res.status(410).send('Enrollment expired');
   if (!Buffer.isBuffer(req.body) || !req.body.length) return res.status(400).send('Missing signed device response');
   const id=crypto.randomUUID(), cms=path.join(ENROLL_DIR,id+'.cms'), decoded=path.join(ENROLL_DIR,id+'.plist'), signer=path.join(ENROLL_DIR,id+'.pem');
+  let verifyStage='save CMS';
   try {
     fs.writeFileSync(cms,req.body);
+    verifyStage='verify Apple device signature';
     execFileSync('openssl',['cms','-verify','-binary','-inform','DER','-in',cms,'-CAfile',APPLE_DEVICE_CA,'-partial_chain','-no_check_time','-purpose','any','-out',decoded,'-signer',signer],{stdio:'pipe',timeout:15000});
+    verifyStage='check Apple device certificate';
     const issuer=execFileSync('openssl',['x509','-in',signer,'-noout','-issuer','-nameopt','RFC2253'],{encoding:'utf8'}).trim();
     if (!issuer.includes('CN=Apple iPhone Device CA')) throw new Error('Signer is not an Apple iPhone device certificate');
+    verifyStage='parse device response';
     const attrs=plist.parse(fs.readFileSync(decoded,'utf8'));
-    const udid=String(attrs.UDID||'').toUpperCase(), challenge=String(attrs.CHALLENGE||attrs.Challenge||'');
-    if (!/^[A-F0-9]{40}$/.test(udid) || !crypto.timingSafeEqual(Buffer.from(challenge),Buffer.from(session.challenge))) throw new Error('Invalid UDID or challenge');
+    const udid=String(attrs.UDID||attrs.Udid||'').toUpperCase();
+    const challengeKey=Object.keys(attrs).find(k=>k.toUpperCase()==='CHALLENGE');
+    const challenge=String(challengeKey?attrs[challengeKey]:'');
+    const got=Buffer.from(challenge), expected=Buffer.from(session.challenge);
+    if (!/^[A-F0-9]{40}$/.test(udid) || got.length!==expected.length || !crypto.timingSafeEqual(got,expected)) throw new Error('Invalid UDID or challenge');
+    verifyStage='save verified UDID';
     session.used=true; session.udid=udid; session.completed=Date.now();
     const store=path.join(ROOT,'udids.json'); let rows=[];
     try { rows=JSON.parse(fs.readFileSync(store,'utf8')); if(!Array.isArray(rows)) rows=[]; } catch(_){}
@@ -199,7 +221,7 @@ app.post('/api/udid/response/:token', express.raw({type:()=>true,limit:'256kb'})
     const signed=path.join(ENROLL_DIR,id+'.response'); signedProfile(doneXml,signed);
     res.set('Content-Type','application/x-apple-aspen-config').send(fs.readFileSync(signed)); fs.rmSync(signed,{force:true});
   } catch(e) {
-    console.warn('UDID enrollment rejected:',e.message);
+    console.warn('[UDID] enrollment rejected at stage:',verifyStage,'error:',e.message,'details:',e.stderr?String(e.stderr).slice(-1200):'none');
     res.status(400).send('Device signature could not be verified');
   } finally { for(const f of [cms,decoded,signer]) fs.rmSync(f,{force:true}); }
 });
