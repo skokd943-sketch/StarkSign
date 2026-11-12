@@ -297,8 +297,11 @@ app.post('/api/apple/start', appleAccess, appleRateLimit, requireAppleHttps, up.
         session.waitingCode = true; session.status='awaiting_code';
         session.message='Apple отправила код подтверждения. Введи 6-значный код.';
       }
-      if (/Signing application|Signing .*\.app/i.test(tail)) {
-        session.status='signing'; session.message='Создаю сертификат, профиль и подписываю IPA…';
+      if (/STARKSIGN_AUTH_OK/.test(tail)) { session.status='preparing'; session.message='Apple ID подтверждён. Подготавливаю устройство…'; }
+      if (/STARKSIGN_DEVICE_OK/.test(tail)) { session.status='preparing'; session.message='Устройство зарегистрировано. Создаю сертификат…'; }
+      if (/STARKSIGN_CERT_OK/.test(tail)) { session.status='preparing'; session.message='Сертификат готов. Создаю provisioning profile…'; }
+      if (/STARKSIGN_SIGNING|Signing application|Signing .*\.app/i.test(tail)) {
+        session.status='signing'; session.message='Подписываю приложение…';
       }
       if (/STARKSIGN_SUCCESS:/i.test(tail)) {
         session.status='packaging'; session.message='Подпись готова, завершаю упаковку…';
