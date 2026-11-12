@@ -79,6 +79,7 @@ struct StarkSignCommand {
         scope adi = data.adi;
         scope device = data.device;
         auto account = loginApple(device, adi);
+        writeln("STARKSIGN_AUTH_OK");
 
         auto teams = account.listTeams().unwrap();
         enforce(teams.length > 0, "Apple account has no development team.");
@@ -88,6 +89,7 @@ struct StarkSignCommand {
         if (!devices.any!(d => d.deviceNumber.toUpper() == udid.toUpper())) {
             account.addDevice!iOS(team, "Stark Sign iPhone", udid).unwrap();
         }
+        writeln("STARKSIGN_DEVICE_OK");
 
         auto appBundle = new Application(input);
         scope(exit) { if (appBundle.tempPath.length && exists(appBundle.tempPath)) rmdirRecurse(appBundle.tempPath); }
@@ -96,6 +98,7 @@ struct StarkSignCommand {
 
         auto identity = new CertificateIdentity(config, account);
         if (identity.keyFile.length && exists(identity.keyFile)) chmod(identity.keyFile, 0o600);
+        writeln("STARKSIGN_CERT_OK");
 
         ProvisioningProfile[string] profiles;
         void addProfile(string identifier, string displayName) {
@@ -117,6 +120,7 @@ struct StarkSignCommand {
 
         sideloadSign(appBundle, identity, profiles, (double progress) {}, true, team.teamId);
 
+        writeln("STARKSIGN_SIGNING");
         auto outputPath = absolutePath(output);
         auto outputDir = dirName(outputPath);
         if (!exists(outputDir)) mkdirRecurse(outputDir);
