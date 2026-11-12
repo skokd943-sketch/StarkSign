@@ -118,9 +118,9 @@ struct StarkSignCommand {
             if (sub.bundleDir.endsWith(".appex")) addProfile(sub.bundleIdentifier(), sub.bundleName());
         }
 
+        writeln("STARKSIGN_SIGNING");
         sideloadSign(appBundle, identity, profiles, (double progress) {}, true, team.teamId);
 
-        writeln("STARKSIGN_SIGNING");
         auto outputPath = absolutePath(output);
         auto outputDir = dirName(outputPath);
         if (!exists(outputDir)) mkdirRecurse(outputDir);
