@@ -338,7 +338,7 @@ app.get('/api/apple/status/:id', appleAccess, (req,res) => {
 app.get('/api/apple/manifest/:id.plist', (req,res) => {
   const s=appleSessions.get(req.params.id);
   if (!s || s.status !== 'complete' || !fs.existsSync(s.output)) return res.sendStatus(404);
-  const base=(process.env.PUBLIC_URL || ('https://'+req.get('host'))).replace(/\\/+$/,'');
+  const base=(process.env.PUBLIC_URL || ('https://'+req.get('host'))).replace(/\/+$/,'');
   const ipaUrl=base+'/api/apple/download/'+s.id+'.ipa';
   res.set('Cache-Control','no-store').type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
