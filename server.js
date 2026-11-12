@@ -335,10 +335,19 @@ app.get('/api/apple/status/:id', appleAccess, (req,res) => {
   if (!s) return res.status(404).json({error:'Задача не найдена'});
   res.json({...applePublicStatus(s),error:s.error});
 });
+app.get('/api/apple/manifest/:id.plist', (req,res) => {
+  const s=appleSessions.get(req.params.id);
+  if (!s || s.status !== 'complete' || !fs.existsSync(s.output)) return res.sendStatus(404);
+  const base=(process.env.PUBLIC_URL || ('https://'+req.get('host'))).replace(/\\/+$/,'');
+  const ipaUrl=base+'/api/apple/download/'+s.id+'.ipa';
+  res.set('Cache-Control','no-store').type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict><key>items</key><array><dict><key>assets</key><array><dict><key>kind</key><string>software-package</string><key>url</key><string>${esc(ipaUrl)}</string></dict></array><key>metadata</key><dict><key>bundle-identifier</key><string>${esc(s.meta.bundle)}</string><key>bundle-version</key><string>${esc(s.meta.version)}</string><key>kind</key><string>software</string><key>title</key><string>${esc(s.meta.name)}</string></dict></dict></array></dict></plist>`);
+});
 app.get('/api/apple/download/:id.ipa', (req,res) => {
   const s=appleSessions.get(req.params.id);
   if (!s || s.status !== 'complete' || !fs.existsSync(s.output)) return res.sendStatus(404);
-  res.download(s.output, (s.meta.name || 'signed')+'.ipa');
+  res.set('Cache-Control','no-store').type('application/octet-stream').sendFile(s.output);
 });
 setInterval(() => {
   const cutoff=Date.now()-TTL;
