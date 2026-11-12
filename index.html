@@ -62,7 +62,7 @@ h1{font-size:44px;line-height:1.05;margin:8px 0 22px;font-weight:800;letter-spac
 .empty{text-align:center;color:var(--dim);margin-top:70px;font-size:17px;line-height:1.45}
 .empty .ring{width:92px;height:92px;margin:0 auto 20px;border-radius:50%;border:4px solid var(--blue);border-top-color:var(--sky);animation:spin 1.6s linear infinite}
 /* tab bar */
-nav{position:fixed;z-index:5;left:14px;right:14px;bottom:8px;height:78px;border-radius:40px;
+nav{position:fixed;z-index:5;left:14px;right:14px;bottom:max(8px,calc(env(safe-area-inset-bottom,0px) - 20px));height:78px;border-radius:40px;
   background:rgba(40,36,70,.55);backdrop-filter:blur(26px) saturate(1.6);-webkit-backdrop-filter:blur(26px) saturate(1.6);
   border:1px solid rgba(255,255,255,.12);display:flex;padding:7px}
 nav .bub{position:absolute;top:7px;bottom:7px;left:7px;width:calc((100% - 14px)/4);border-radius:34px;
@@ -72,8 +72,6 @@ nav button{flex:1;position:relative;z-index:1;background:none;border:0;color:#ff
 nav button svg{width:28px;height:28px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:transform .5s var(--ease)}
 nav button.on{color:var(--sky)} nav button.on svg{transform:translateY(-2px) scale(1.12)}
 
-.app .view,.app .glow{height:var(--H)}
-.app nav{bottom:auto;top:calc(var(--H) - 86px)}
 .sub{display:flex;justify-content:space-between;align-items:center;margin:26px 4px 12px;font-size:20px;font-weight:700}
 .sub:first-of-type{margin-top:0}
 .cert{background:var(--card);border-radius:26px;padding:16px;margin-bottom:12px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
@@ -169,11 +167,6 @@ const $=q=>document.querySelector(q);
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fmt=b=>b>1048576?(b/1048576).toFixed(1)+' МБ':Math.ceil(b/1024)+' КБ';
 function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),2600)}
-// высота экрана для установленного приложения (прижимает панель к низу)
-function fit(){if(navigator.standalone||matchMedia('(display-mode: standalone)').matches){
-  document.documentElement.classList.add('app');
-  document.documentElement.style.setProperty('--H',Math.max(innerHeight,innerWidth<innerHeight?screen.height:screen.width)+'px')}}
-fit();addEventListener('resize',fit);addEventListener('orientationchange',()=>setTimeout(fit,300));
 // репозиторий: owner и repo берутся из адреса сайта
 const host=location.hostname,seg=location.pathname.split('/')[1]||'';
 const owner=host.split('.')[0],repo=(seg&&!seg.includes('.'))?seg:host;
