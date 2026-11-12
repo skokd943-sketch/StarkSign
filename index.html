@@ -240,7 +240,7 @@ async function watchAppleJob(id,srv){
       if(j.status==='awaiting_code'){codeWrap.style.display='grid';codeBtn.style.display='block';}
       if(j.status==='complete'){
         clearInterval(applePoll);codeWrap.style.display='none';codeBtn.style.display='none';
-        status.innerHTML='Подписано: <a class="mini" href="'+srv+j.downloadUrl+'">Скачать IPA</a>';
+        status.textContent='Подписано: ';\n        const install=document.createElement('a');install.className='mini';install.href='itms-services://?action=download-manifest&url='+encodeURIComponent(srv+'/api/apple/manifest/'+id+'.plist');install.textContent='Установить на iPhone';\n        const download=document.createElement('a');download.className='mini';download.href=srv+j.downloadUrl;download.textContent='Скачать IPA';status.append(install,document.createTextNode(' '),download);
         toast('IPA успешно подписан');
       }
       if(j.status==='error'){clearInterval(applePoll);status.textContent='Ошибка: '+(j.error||j.message);codeWrap.style.display='none';codeBtn.style.display='none';}
@@ -286,7 +286,7 @@ $('#getudid').onclick=async()=>{
     const r=await fetch(srv+'/api/udid/start',{method:'POST'}),j=await r.json();if(!r.ok)throw Error(j.error||'Ошибка сервера');
     localStorage.udidToken=j.token;localStorage.udidServer=srv;out.textContent='Открой профиль и подтверди установку в Настройках iPhone. Запрос действует 20 минут.';
     location.href=j.url;
-    clearInterval(udidPoll);udidPoll=setInterval(async()=>{try{const x=await fetch(srv+'/api/udid/status/'+j.token),v=await x.json();if(v.status==='complete'){clearInterval(udidPoll);localStorage.udidValue=v.udid;localStorage.udidValue=v.udid;out.textContent='UDID получен и проверен: '+v.udid;toast('Устройство подтверждено');}}catch(e){}},3000);
+    clearInterval(udidPoll);udidPoll=setInterval(async()=>{try{const x=await fetch(srv+'/api/udid/status/'+j.token),v=await x.json();if(v.status==='complete'){clearInterval(udidPoll);localStorage.udidValue=v.udid;out.textContent='UDID получен и проверен: '+v.udid;toast('Устройство подтверждено');}}catch(e){}},3000);
   }catch(e){out.textContent=e.message;toast(e.message)}finally{b.disabled=false;b.textContent='Получить UDID автоматически'}
 };
 if(localStorage.udidToken&&localStorage.udidServer){const t=localStorage.udidToken,s=localStorage.udidServer;const checkUdid=async()=>{try{const r=await fetch(s+'/api/udid/status/'+t),v=await r.json();if(v.status==='complete'){clearInterval(udidPoll);localStorage.udidValue=v.udid;localStorage.udidValue=v.udid;$('#udidstatus').textContent='UDID получен и проверен: '+v.udid;}}catch(e){}};checkUdid();udidPoll=setInterval(checkUdid,4000);}
