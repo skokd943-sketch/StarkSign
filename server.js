@@ -239,14 +239,14 @@ app.post('/api/apple/start', appleAccess, up.single('ipa'), (req,res) => {
   const password = String(req.body.password || '');
   const udid = String(req.body.udid || '').toUpperCase();
   if (!req.file) return fail(400,'Выбери IPA-файл');
-  if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(appleId) || !password) return fail(400,'Проверь Apple ID и пароль');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(appleId) || !password) return fail(400,'Проверь Apple ID и пароль');
   if (!knownUdid(udid)) return fail(400,'Сначала получи и подтверди UDID на этом устройстве');
   const accountKey = crypto.createHash('sha256').update(appleId.toLowerCase()).digest('hex');
   if (appleLocks.has(accountKey)) return fail(409,'Для этого Apple ID уже выполняется подписание');
   let meta;
   try {
     const z = new AdmZip(req.file.path);
-    const e = z.getEntries().find(x => /^Payload\\/[^/]+\\.app\\/Info\\.plist$/.test(x.entryName));
+    const e = z.getEntries().find(x => /^Payload\/[^/]+\.app\/Info\.plist$/.test(x.entryName));
     if (!e) throw new Error('Info.plist не найден');
     const p = plist.parse(e.getData());
     meta = {name:p.CFBundleDisplayName || p.CFBundleName || 'App',bundle:p.CFBundleIdentifier,version:p.CFBundleShortVersionString || '1.0'};
@@ -271,22 +271,22 @@ app.post('/api/apple/start', appleAccess, up.single('ipa'), (req,res) => {
     });
     session.proc = proc;
     proc.onData(data => {
-      const clean = data.replace(/\\x1b\\[[0-?]*[ -/]*[@-~]/g,'').replace(/\\r/g,'');
+      const clean = data.replace(/\x1b\[[0-?]*[ -/]*[@-~]/g,'').replace(/\r/g,'');
       session.buffer = (session.buffer + clean).slice(-12000);
       const tail = session.buffer.slice(-500);
-      if (!session.sentId && /Apple ID:\\s*$/i.test(tail)) {
-        session.sentId = true; proc.write(session.appleId+'\\r'); session.appleId='';
+      if (!session.sentId && /Apple ID:\s*$/i.test(tail)) {
+        session.sentId = true; proc.write(session.appleId+'\r'); session.appleId='';
         session.status='authenticating'; session.message='Проверяю Apple ID…';
       }
-      if (session.sentId && !session.sentPassword && /Password:\\s*$/i.test(tail)) {
-        session.sentPassword = true; proc.write(session.password+'\\r'); session.password='';
+      if (session.sentId && !session.sentPassword && /Password:\s*$/i.test(tail)) {
+        session.sentPassword = true; proc.write(session.password+'\r'); session.password='';
         session.status='authenticating'; session.message='Выполняю вход в Apple…';
       }
       if (/type .?resend.? to resend one|please type it here/i.test(tail)) {
         session.waitingCode = true; session.status='awaiting_code';
         session.message='Apple отправила код подтверждения. Введи 6-значный код.';
       }
-      if (/Signing application|Signing .*\\.app/i.test(tail)) {
+      if (/Signing application|Signing .*\.app/i.test(tail)) {
         session.status='signing'; session.message='Создаю сертификат, профиль и подписываю IPA…';
       }
       if (/STARKSIGN_SUCCESS:/i.test(tail)) {
@@ -318,9 +318,9 @@ app.post('/api/apple/start', appleAccess, up.single('ipa'), (req,res) => {
 app.post('/api/apple/code/:id', appleAccess, express.json({limit:'2kb'}), (req,res) => {
   const s=appleSessions.get(req.params.id), code=String(req.body.code || '').trim();
   if (!s || s.status !== 'awaiting_code' || !s.proc || !s.waitingCode) return res.status(409).json({error:'Сейчас код подтверждения не ожидается'});
-  if (!/^\\d{4,8}$/.test(code)) return res.status(400).json({error:'Введи код из SMS или доверенного устройства'});
+  if (!/^\d{4,8}$/.test(code)) return res.status(400).json({error:'Введи код из SMS или доверенного устройства'});
   s.waitingCode=false; s.status='authenticating'; s.message='Проверяю код Apple…';
-  s.proc.write(code+'\\r');
+  s.proc.write(code+'\r');
   res.json({ok:true});
 });
 app.get('/api/apple/status/:id', appleAccess, (req,res) => {
