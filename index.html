@@ -79,10 +79,12 @@ nav button.on{color:var(--sky)} nav button.on svg{transform:translateY(-2px) sca
 .cert b{font-size:17px}.cert small{display:block;color:var(--dim);font-size:13px;margin-top:3px;word-break:break-word}
 .mini{background:rgba(79,184,255,.16);color:var(--sky);border:0;font:600 14px inherit;font-family:inherit;padding:8px 14px;border-radius:99px;text-decoration:none}
 .mini+.mini{margin-left:6px}
+.bar{height:6px;border-radius:9px;background:#2a2a31;overflow:hidden;display:none}.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--blue),var(--sky));transition:width .3s}
+.btn:disabled{opacity:.6}
 .hint{color:var(--dim);font-size:15px;margin:4px 6px 12px;line-height:1.4}
 .form{background:var(--card);border-radius:26px;padding:16px;display:grid;gap:10px;margin-bottom:12px}
 .form label{font-size:13px;color:var(--dim);display:grid;gap:6px}
-.form input{width:100%;background:#2a2a31;border:0;border-radius:14px;padding:13px;color:#fff;font:16px inherit;font-family:inherit}
+.form input,.form select{width:100%;background:#2a2a31;border:0;border-radius:14px;padding:13px;color:#fff;font:16px inherit;font-family:inherit}
 .btn{background:linear-gradient(135deg,var(--blue),#3a8bff);color:#fff;border:0;border-radius:16px;padding:14px;font:700 17px inherit;font-family:inherit;transition:transform .3s var(--ease)}
 .btn:active{transform:scale(.96)}
 #toast{position:fixed;z-index:9;left:50%;top:calc(env(safe-area-inset-top,0px) + 14px);transform:translate(-50%,-90px);background:rgba(40,40,60,.9);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);padding:13px 20px;border-radius:99px;font-weight:600;transition:transform .5s var(--ease);max-width:90%;text-align:center}
@@ -102,7 +104,14 @@ nav button.on{color:var(--sky)} nav button.on svg{transform:translateY(-2px) sca
 
 <section class="view" id="v1">
   <h1>Приложения</h1>
-  <div class="empty"><div class="ring"></div>Здесь появятся твои приложения.<br>Пока список пуст.</div>
+  <div class="form">
+    <label>Файл .ipa<input type="file" id="ipa" accept=".ipa"></label>
+    <label>Сертификат<select id="certsel"></select></label>
+    <button class="btn" id="sign">Подписать</button>
+    <div class="bar" id="bar"><i></i></div>
+  </div>
+  <p class="sub">Подписанные</p>
+  <div id="signed"></div>
 </section>
 
 <section class="view" id="v2">
@@ -127,6 +136,10 @@ nav button.on{color:var(--sky)} nav button.on svg{transform:translateY(-2px) sca
 
 <section class="view" id="v3">
   <h1>Настройки</h1>
+  <div class="form">
+    <label>Адрес сервера<input id="srv" placeholder="https://название.up.railway.app" autocapitalize="off" autocorrect="off"></label>
+    <label>Ключ доступа (если задан на сервере)<input id="key" type="password" autocomplete="off"></label>
+  </div>
   <div class="set">
     <div>Анимации <span class="sw on" data-k="anim"></span></div>
     <div>Уведомления <span class="sw"></span></div>
@@ -170,20 +183,23 @@ function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clea
 // репозиторий: owner и repo берутся из адреса сайта
 const host=location.hostname,seg=location.pathname.split('/')[1]||'';
 const owner=host.split('.')[0],repo=(seg&&!seg.includes('.'))?seg:host;
+let repoCerts=[],mineCerts=[];
 const row=(n,sub,act)=>`<div class="cert"><div class="ico">P12</div><div><b>${esc(n)}</b><small>${sub}</small></div><div>${act}</div></div>`;
 async function loadRepo(){
   const el=$('#repo');
   try{
     const r=await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/certs?_=${Date.now()}`,{cache:'no-store'});
     const f=r.ok?await r.json():[];
-    const out=[];
+    const out=[],rc=[];
     for(const p of f.filter(x=>/\.p12$/i.test(x.name))){
       const b=p.name.replace(/\.p12$/i,''),L=b.toLowerCase();
       const t=f.find(x=>x.name.toLowerCase()===L+'.txt'),m=f.find(x=>x.name.toLowerCase()===L+'.mobileprovision');
       let pw='';if(t){try{pw=(await(await fetch(t.download_url+'?_='+Date.now())).text()).trim()}catch(e){}}
+      rc.push({label:b,p12:p.download_url,prov:m&&m.download_url,pass:pw});
       out.push(row(b,fmt(p.size)+(pw?' · пароль: '+esc(pw):''),
         `<a class="mini" href="${p.download_url}" download>Скачать</a>`+(m?`<a class="mini" href="${m.download_url}" download>Профиль</a>`:'')));
     }
+    repoCerts=rc;refreshSel();
     el.innerHTML=out.join('')||'<p class="hint">Администратор пока не добавил сертификаты.</p>';
   }catch(e){el.innerHTML='<p class="hint">Не удалось загрузить список. Проверь интернет.</p>'}
 }
@@ -191,7 +207,7 @@ async function loadRepo(){
 const db=new Promise((ok,no)=>{const r=indexedDB.open('stark-sign',1);r.onupgradeneeded=()=>r.result.createObjectStore('certs',{keyPath:'id',autoIncrement:true});r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)});
 const tx=async(m,f)=>{const d=await db;return new Promise((ok,no)=>{const t=d.transaction('certs',m),q=f(t.objectStore('certs'));t.oncomplete=()=>ok(q.result);t.onerror=()=>no(t.error)})};
 async function loadMine(){
-  try{const l=await tx('readonly',s=>s.getAll());
+  try{const l=await tx('readonly',s=>s.getAll());mineCerts=l.map(c=>({label:c.name+' (мой)',blob:c.p12,pass:c.pass,provBlob:c.prov}));refreshSel();
   $('#mine').innerHTML=l.map(c=>row(c.name,fmt(c.size)+(c.prov?' · с профилем':''),`<button class="mini" data-del="${c.id}">Удалить</button>`)).join('')||'<p class="hint">Своих сертификатов пока нет.</p>'}catch(e){}
 }
 $('#add').onclick=async()=>{
@@ -204,6 +220,35 @@ $('#login').onclick=()=>toast('Вход через Apple ID скоро появ�
 $('#refresh').onclick=()=>{loadRepo();toast('Список обновлён')};
 setInterval(()=>{if(!document.hidden&&$('#v2').classList.contains('on'))loadRepo()},30000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&$('#v2').classList.contains('on'))loadRepo()});
+const allCerts=()=>[...repoCerts,...mineCerts];
+function refreshSel(){const s=$('#certsel'),v=s.value;s.innerHTML=allCerts().map((c,i)=>`<option value="${i}">${esc(c.label)}</option>`).join('')||'<option value="">Нет сертификатов</option>';if(v)s.value=v}
+const srvIn=$('#srv'),keyIn=$('#key');srvIn.value=localStorage.srv||'';keyIn.value=localStorage.key||'';
+srvIn.oninput=()=>localStorage.srv=srvIn.value.trim().replace(/\/+$/,'');keyIn.oninput=()=>localStorage.key=keyIn.value;
+const hist=()=>{try{return JSON.parse(localStorage.signed||'[]')}catch(e){return[]}};
+function showSigned(){$('#signed').innerHTML=hist().map(h=>`<div class="cert"><div class="ico">IPA</div><div><b>${esc(h.name)}</b><small>${esc(h.ver)} · ${esc(h.date)}</small></div><div><a class="mini" href="itms-services://?action=download-manifest&url=${h.srv}/api/manifest/${h.id}.plist">Установить</a><a class="mini" href="${h.srv}/api/ipa/${h.id}.ipa">IPA</a></div></div>`).join('')||'<p class="hint">Подписанных приложений пока нет. Файлы на сервере хранятся 24 часа.</p>'}
+$('#sign').onclick=async()=>{
+  const srv=localStorage.srv;if(!srv)return toast('Укажи адрес сервера в настройках');
+  const f=$('#ipa').files[0];if(!f)return toast('Выбери файл .ipa');
+  const c=allCerts()[$('#certsel').value];if(!c)return toast('Выбери сертификат');
+  const btn=$('#sign'),bar=$('#bar'),fill=bar.firstElementChild;
+  try{
+    btn.disabled=true;btn.textContent='Готовлю…';
+    const p12=c.blob||await(await fetch(c.p12)).blob();
+    const prov=c.provBlob||(c.prov?await(await fetch(c.prov)).blob():null);
+    if(!prov)throw Error('К сертификату нужен файл .mobileprovision');
+    const fd=new FormData();fd.append('ipa',f);fd.append('p12',p12,'c.p12');fd.append('prov',prov,'p.mobileprovision');fd.append('pass',c.pass||'');
+    bar.style.display='block';
+    const d=await new Promise((ok,no)=>{const x=new XMLHttpRequest();x.open('POST',srv+'/api/sign');if(localStorage.key)x.setRequestHeader('x-key',localStorage.key);
+      x.upload.onprogress=e=>{if(e.lengthComputable){fill.style.width=(e.loaded/e.total*100)+'%';btn.textContent='Загрузка '+Math.round(e.loaded/e.total*100)+'%'}};
+      x.upload.onload=()=>btn.textContent='Подписываю…';
+      x.onload=()=>{let j={};try{j=JSON.parse(x.responseText)}catch(e){}x.status===200?ok(j):no(Error(j.error||'Ошибка сервера '+x.status))};
+      x.onerror=()=>no(Error('Сервер недоступен'));x.send(fd)});
+    const l=hist();l.unshift({id:d.id,name:d.name,ver:d.version,srv,date:new Date().toLocaleDateString('ru')});localStorage.signed=JSON.stringify(l.slice(0,30));
+    showSigned();toast('Готово, нажми «Установить»');
+  }catch(e){toast(e.message)}
+  btn.disabled=false;btn.textContent='Подписать';bar.style.display='none';fill.style.width='0';
+};
+showSigned();
 loadMine();loadRepo();
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
