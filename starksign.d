@@ -54,19 +54,28 @@ struct StarkSignCommand {
         auto bundleId = app.bundleIdentifier();
         enforce(bundleId.length > 0, "IPA has no CFBundleIdentifier.");
 
-        auto ids = account.listAppIds!iOS(team).unwrap();
-        auto matching = ids.appIds.filter!(a => a.identifier == bundleId).array();
-        if (matching.length == 0) {
-            enforce(ids.availableQuantity > 0, "Free Apple account has reached its App ID limit.");
-            account.addAppId!iOS(team, bundleId, app.bundleName()).unwrap();
-            ids = account.listAppIds!iOS(team).unwrap();
-            matching = ids.appIds.filter!(a => a.identifier == bundleId).array();
+        ProvisioningProfile[string] profiles;
+        void addProfile(string identifier, string displayName) {
+            auto ids = account.listAppIds!iOS(team).unwrap();
+            auto matching = ids.appIds.filter!(a => a.identifier == identifier).array();
+            if (matching.length == 0) {
+                enforce(ids.availableQuantity > 0, "Free Apple account has reached its App ID limit.");
+                account.addAppId!iOS(team, identifier, displayName).unwrap();
+                ids = account.listAppIds!iOS(team).unwrap();
+                matching = ids.appIds.filter!(a => a.identifier == identifier).array();
+            }
+            enforce(matching.length > 0, "Apple did not create App ID: " ~ identifier);
+            profiles[identifier] = account.downloadTeamProvisioningProfile!iOS(team, matching[0]).unwrap();
         }
-        enforce(matching.length > 0, "Apple did not create the App ID.");
-        auto profile = account.downloadTeamProvisioningProfile!iOS(team, matching[0]).unwrap();
+        addProfile(bundleId, app.bundleName());
+        foreach (sub; app.subBundles()) {
+            if (sub.bundleDir.endsWith(".appex")) {
+                addProfile(sub.bundleIdentifier(), sub.bundleName());
+            }
+        }
 
         auto identity = new CertificateIdentity(config, account);
-        sideloadSign(app, identity, [bundleId: profile], (double p) {}, true, team.teamId);
+        sideloadSign(app, identity, profiles, (double p) {}, true, team.teamId);
 
         auto out = absolutePath(output);
         auto outDir = dirName(out);
