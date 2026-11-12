@@ -113,6 +113,7 @@ struct StarkSignCommand {
         }
 
         auto identity = new CertificateIdentity(config, account);
+        if (identity.keyFile.length && exists(identity.keyFile)) chmod(identity.keyFile, 0o600);
         sideloadSign(appBundle, identity, profiles, (double progress) {}, true, team.teamId);
 
         auto out = absolutePath(output);
