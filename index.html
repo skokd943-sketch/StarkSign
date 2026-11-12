@@ -132,8 +132,11 @@ nav button.on{color:var(--sky)} nav button.on svg{transform:translateY(-2px) sca
   <div class="form">
     <label>Apple ID<input type="email" id="aid" placeholder="name@icloud.com" autocomplete="off"></label>
     <label>Пароль<input type="password" id="apw" autocomplete="off"></label>
-    <button class="btn" id="login">Войти</button>
-    <p class="hint">Apple ID пока не отправляется на сервер. Сначала получи UDID устройства — iPhone попросит подтвердить установку временного профиля.</p>
+    <button class="btn" id="login">Подписать IPA через Apple ID</button>
+    <p class="hint">Введи Apple ID и пароль. Если Apple запросит двухфакторный код, введи его здесь. Пароль не сохраняется в браузере.</p>
+    <div id="appleStatus" class="hint"></div>
+    <label id="appleCodeWrap" style="display:none">Код подтверждения Apple<input id="appleCode" inputmode="numeric" autocomplete="one-time-code" placeholder="6 цифр"></label>
+    <button class="btn" id="submitAppleCode" style="display:none">Подтвердить код</button>
     <button class="btn" id="getudid">Получить UDID автоматически</button>
     <div id="udidstatus" class="hint"></div>
   </div>
@@ -225,7 +228,57 @@ $('#add').onclick=async()=>{
   $('#p12').value=$('#pass').value=$('#prov').value='';toast('Сертификат добавлен');loadMine()}catch(e){toast('Не удалось сохранить')}
 };
 $('#mine').onclick=async e=>{const id=e.target.dataset.del;if(!id)return;await tx('readwrite',s=>s.delete(+id));toast('Сертификат удалён');loadMine()};
-$('#login').onclick=()=>toast('Вход Apple ID будет добавлен после безопасной проверки 2FA');
+let applePoll=null;
+async function watchAppleJob(id,srv){
+  clearInterval(applePoll);
+  const status=$('#appleStatus'),codeWrap=$('#appleCodeWrap'),codeBtn=$('#submitAppleCode');
+  const check=async()=>{
+    try{
+      const headers={};if(localStorage.key)headers['x-key']=localStorage.key;
+      const r=await fetch(srv+'/api/apple/status/'+id,{headers}),j=await r.json();
+      status.textContent=j.message||j.error||'Обработка…';
+      if(j.status==='awaiting_code'){codeWrap.style.display='grid';codeBtn.style.display='block';}
+      if(j.status==='complete'){
+        clearInterval(applePoll);codeWrap.style.display='none';codeBtn.style.display='none';
+        status.innerHTML='Подписано: <a class="mini" href="'+srv+j.downloadUrl+'">Скачать IPA</a>';
+        toast('IPA успешно подписан');
+      }
+      if(j.status==='error'){clearInterval(applePoll);status.textContent='Ошибка: '+(j.error||j.message);codeWrap.style.display='none';codeBtn.style.display='none';}
+    }catch(e){status.textContent='Потеряно соединение с сервером';}
+  };
+  await check();applePoll=setInterval(check,2000);
+}
+$('#login').onclick=async()=>{
+  const f=$('#ipa').files[0],appleId=$('#aid').value.trim(),password=$('#apw').value;
+  const srv=(localStorage.srv||location.origin).replace(/\/+$/,'');
+  const udid=localStorage.udidValue||'';
+  if(!f)return toast('Сначала выбери IPA во вкладке «Приложения»');
+  if(!udid)return toast('Сначала получи UDID автоматически');
+  if(!appleId||!password)return toast('Введи Apple ID и пароль');
+  const btn=$('#login'),status=$('#appleStatus');
+  try{
+    btn.disabled=true;btn.textContent='Подключаюсь к Apple…';status.textContent='Запускаю защищённую сессию…';
+    const fd=new FormData();fd.append('ipa',f);fd.append('appleId',appleId);fd.append('password',password);fd.append('udid',udid);
+    const headers={};if(localStorage.key)headers['x-key']=localStorage.key;
+    const r=await fetch(srv+'/api/apple/start',{method:'POST',headers,body:fd}),j=await r.json();
+    if(!r.ok)throw Error(j.error||'Ошибка сервера');
+    $('#apw').value='';localStorage.appleJob=j.id;localStorage.appleServer=srv;
+    await watchAppleJob(j.id,srv);
+  }catch(e){status.textContent=e.message;toast(e.message);}
+  finally{btn.disabled=false;btn.textContent='Подписать IPA через Apple ID';}
+};
+$('#submitAppleCode').onclick=async()=>{
+  const id=localStorage.appleJob,srv=localStorage.appleServer,code=$('#appleCode').value.trim();
+  if(!id||!code)return toast('Введи код Apple');
+  const headers={'Content-Type':'application/json'};if(localStorage.key)headers['x-key']=localStorage.key;
+  try{
+    const r=await fetch(srv+'/api/apple/code/'+id,{method:'POST',headers,body:JSON.stringify({code})}),j=await r.json();
+    if(!r.ok)throw Error(j.error||'Код не принят');
+    $('#appleCode').value='';$('#appleCodeWrap').style.display='none';$('#submitAppleCode').style.display='none';
+    $('#appleStatus').textContent='Код отправлен. Проверяю…';
+  }catch(e){toast(e.message);}
+};
+if(localStorage.appleJob&&localStorage.appleServer)watchAppleJob(localStorage.appleJob,localStorage.appleServer);
 let udidPoll=null;
 $('#getudid').onclick=async()=>{
   const b=$('#getudid'),out=$('#udidstatus'),srv=(localStorage.srv||location.origin).replace(/\/+$/,'');
@@ -233,10 +286,10 @@ $('#getudid').onclick=async()=>{
     const r=await fetch(srv+'/api/udid/start',{method:'POST'}),j=await r.json();if(!r.ok)throw Error(j.error||'Ошибка сервера');
     localStorage.udidToken=j.token;localStorage.udidServer=srv;out.textContent='Открой профиль и подтверди установку в Настройках iPhone. Запрос действует 20 минут.';
     location.href=j.url;
-    clearInterval(udidPoll);udidPoll=setInterval(async()=>{try{const x=await fetch(srv+'/api/udid/status/'+j.token),v=await x.json();if(v.status==='complete'){clearInterval(udidPoll);out.textContent='UDID получен и проверен: '+v.udid;toast('Устройство подтверждено');}}catch(e){}},3000);
+    clearInterval(udidPoll);udidPoll=setInterval(async()=>{try{const x=await fetch(srv+'/api/udid/status/'+j.token),v=await x.json();if(v.status==='complete'){clearInterval(udidPoll);localStorage.udidValue=v.udid;out.textContent='UDID получен и проверен: '+v.udid;toast('Устройство подтверждено');}}catch(e){}},3000);
   }catch(e){out.textContent=e.message;toast(e.message)}finally{b.disabled=false;b.textContent='Получить UDID автоматически'}
 };
-if(localStorage.udidToken&&localStorage.udidServer){const t=localStorage.udidToken,s=localStorage.udidServer;const checkUdid=async()=>{try{const r=await fetch(s+'/api/udid/status/'+t),v=await r.json();if(v.status==='complete'){clearInterval(udidPoll);$('#udidstatus').textContent='UDID получен и проверен: '+v.udid;}}catch(e){}};checkUdid();udidPoll=setInterval(checkUdid,4000);}
+if(localStorage.udidToken&&localStorage.udidServer){const t=localStorage.udidToken,s=localStorage.udidServer;const checkUdid=async()=>{try{const r=await fetch(s+'/api/udid/status/'+t),v=await r.json();if(v.status==='complete'){clearInterval(udidPoll);localStorage.udidValue=v.udid;$('#udidstatus').textContent='UDID получен и проверен: '+v.udid;}}catch(e){}};checkUdid();udidPoll=setInterval(checkUdid,4000);}
 $('#refresh').onclick=()=>{loadRepo();toast('Список обновлён')};
 setInterval(()=>{if(!document.hidden&&$('#v2').classList.contains('on'))loadRepo()},30000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&$('#v2').classList.contains('on'))loadRepo()});
