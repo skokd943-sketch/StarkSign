@@ -270,7 +270,7 @@ app.post('/api/apple/start', appleAccess, appleRateLimit, requireAppleHttps, up.
   fs.mkdirSync(work,{recursive:true,mode:0o700});
   fs.mkdirSync(config,{recursive:true,mode:0o700});
   try { fs.chmodSync(work,0o700); fs.chmodSync(config,0o700); } catch(_){}
-  const input = path.join(work,'input.ipa'), output = path.join(work,'signed.ipa');
+  const input = path.join(work,id+'.ipa'), output = path.join(work,'signed.ipa');
   fs.renameSync(req.file.path,input);
   const session = {id,work,input,output,config,accountKey,appleId, password,udid,meta,status:'starting',message:'Запускаю безопасный вход Apple…',error:'',buffer:'',sentId:false,sentPassword:false,waitingCode:false,created:Date.now(),proc:null};
   appleSessions.set(id,session);
