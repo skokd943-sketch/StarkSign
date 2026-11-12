@@ -132,7 +132,7 @@ nav button.on{color:var(--sky)} nav button.on svg{transform:translateY(-2px) sca
   <div class="form">
     <label>Apple ID<input type="email" id="aid" placeholder="name@icloud.com" autocomplete="off"></label>
     <label>Пароль<input type="password" id="apw" autocomplete="off"></label>
-    <button class="btn" id="login">Войти</button>
+    <button class="btn" id="login">Войти</button>\n    <p class="hint">Apple ID пока не отправляется на сервер. Сначала получи UDID устройства — iPhone попросит подтвердить установку временного профиля.</p>\n    <button class="btn" id="getudid">Получить UDID автоматически</button>\n    <div id="udidstatus" class="hint"></div>
   </div>
 </section>
 
@@ -222,7 +222,18 @@ $('#add').onclick=async()=>{
   $('#p12').value=$('#pass').value=$('#prov').value='';toast('Сертификат добавлен');loadMine()}catch(e){toast('Не удалось сохранить')}
 };
 $('#mine').onclick=async e=>{const id=e.target.dataset.del;if(!id)return;await tx('readwrite',s=>s.delete(+id));toast('Сертификат удалён');loadMine()};
-$('#login').onclick=()=>toast('Вход через Apple ID скоро появится');
+$('#login').onclick=()=>toast('Вход Apple ID будет добавлен после безопасной проверки 2FA');
+let udidPoll=null;
+$('#getudid').onclick=async()=>{
+  const b=$('#getudid'),out=$('#udidstatus'),srv=(localStorage.srv||location.origin).replace(/\\/+$/,'');
+  try{b.disabled=true;b.textContent='Создаю профиль…';
+    const r=await fetch(srv+'/api/udid/start',{method:'POST'}),j=await r.json();if(!r.ok)throw Error(j.error||'Ошибка сервера');
+    localStorage.udidToken=j.token;localStorage.udidServer=srv;out.textContent='Открой профиль и подтверди установку в Настройках iPhone. Запрос действует 20 минут.';
+    location.href=j.url;
+    clearInterval(udidPoll);udidPoll=setInterval(async()=>{try{const x=await fetch(srv+'/api/udid/status/'+j.token),v=await x.json();if(v.status==='complete'){clearInterval(udidPoll);out.textContent='UDID получен и проверен: '+v.udid;toast('Устройство подтверждено');}}catch(e){}},3000);
+  }catch(e){out.textContent=e.message;toast(e.message)}finally{b.disabled=false;b.textContent='Получить UDID автоматически'}
+};
+if(localStorage.udidToken&&localStorage.udidServer){const t=localStorage.udidToken,s=localStorage.udidServer;fetch(s+'/api/udid/status/'+t).then(r=>r.json()).then(v=>{if(v.status==='complete')$('#udidstatus').textContent='UDID получен и проверен: '+v.udid;}).catch(()=>{});}
 $('#refresh').onclick=()=>{loadRepo();toast('Список обновлён')};
 setInterval(()=>{if(!document.hidden&&$('#v2').classList.contains('on'))loadRepo()},30000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&$('#v2').classList.contains('on'))loadRepo()});
