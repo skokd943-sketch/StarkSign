@@ -7,7 +7,7 @@ RUN git clone --depth 1 https://github.com/zhlynn/zsign /tmp/zsign && cd /tmp/zs
  && rm -rf /tmp/zsign
 
 # --- Sideloader: secure Apple account and provisioning backend ---
-RUN apt-get update && apt-get install -y --no-install-recommends curl xz-utils libimobiledevice-dev libplist-dev \\
+RUN apt-get update && apt-get install -y --no-install-recommends curl xz-utils libimobiledevice-dev libplist-dev \
  && rm -rf /var/lib/apt/lists/*
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN ( curl -fsSL https://github.com/ldc-developers/ldc/releases/download/v1.36.0/ldc2-1.36.0-linux-x86_64.tar.xz | tar -xJ -C /opt \
