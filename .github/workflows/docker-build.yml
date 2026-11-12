@@ -10,12 +10,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
       - name: Build complete signing image
-        uses: docker/build-push-action@v6
+        shell: bash
+        run: |
+          set -o pipefail
+          docker build --progress=plain -t stark-sign:test . 2>&1 | tee docker-build.log
+      - name: Save build log
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          context: .
-          push: false
-          tags: stark-sign:test
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          name: docker-build-log
+          path: docker-build.log
+          if-no-files-found: ignore
