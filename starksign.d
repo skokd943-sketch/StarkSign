@@ -3,12 +3,14 @@ module starksign;
 import std.algorithm;
 import std.array;
 import std.file;
+import std.exception;
 import std.path;
 import std.process;
 import std.stdio;
 import std.string;
 
 import argparse;
+import provision;
 import slf4d;
 import server.developersession;
 import sideload.application;
@@ -81,7 +83,7 @@ struct StarkSignCommand {
         auto outDir = dirName(out);
         if (!exists(outDir)) mkdirRecurse(outDir);
         if (exists(out)) remove(out);
-        auto result = execute(["zip", "-qr", out, "Payload"], null, Config.none, 1024 * 1024, app.tempPath);
+        auto result = executeShell("cd " ~ app.tempPath ~ " && zip -qr " ~ out ~ " Payload");
         enforce(result.status == 0 && exists(out), "Failed to package signed IPA: " ~ result.output);
 
         writeln("STARKSIGN_SUCCESS:", out);
