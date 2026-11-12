@@ -1,6 +1,7 @@
 const express = require('express'), multer = require('multer'), fs = require('fs'), path = require('path');
 const { execFile } = require('child_process'), crypto = require('crypto');
 const AdmZip = require('adm-zip'), plist = require('simple-plist');
+const pty = require('node-pty');
 
 // Railway без Volume: используем только временное хранилище контейнера.
 // DATA_DIR можно переопределить, но для текущего деплоя оставляем /tmp/stark.
@@ -208,6 +209,139 @@ app.get('/api/udid/status/:token', (req,res) => {
   res.json(session.udid?{status:'complete',udid:session.udid}:{status:'pending'});
 });
 setInterval(()=>{const now=Date.now();for(const [t,s] of enrollments)if(now-s.created>30*60*1000)enrollments.delete(t);for(const [ip,a] of enrollRate)if(!a.some(t=>now-t<60*60*1000))enrollRate.delete(ip);},5*60*1000).unref();
+
+
+
+/* Automatic free Apple Developer signing through the Sideloader CLI.
+   Credentials are held only in process memory until the PTY consumes them.
+   The Apple account's local ADI/key material is isolated by Apple-ID hash. */
+const appleSessions = new Map();
+const appleLocks = new Set();
+const appleAccess = (req,res,next) => (KEY && req.get('x-key') !== KEY)
+  ? res.status(401).json({error:'Неверный ключ доступа'}) : next();
+
+function knownUdid(value) {
+  if (!/^[A-Fa-f0-9]{40}$/.test(String(value || ''))) return false;
+  try {
+    const rows = JSON.parse(fs.readFileSync(path.join(ROOT,'udids.json'),'utf8'));
+    return Array.isArray(rows) && rows.some(x => String(x.udid).toUpperCase() === String(value).toUpperCase());
+  } catch (_) { return false; }
+}
+function applePublicStatus(s) {
+  return {id:s.id,status:s.status,message:s.message || '',error:s.error || '',
+    downloadUrl:s.status === 'complete' ? '/api/apple/download/'+s.id+'.ipa' : undefined,
+    name:s.meta && s.meta.name, bundle:s.meta && s.meta.bundle, version:s.meta && s.meta.version};
+}
+
+app.post('/api/apple/start', appleAccess, up.single('ipa'), (req,res) => {
+  const fail = (code,msg) => { if(req.file) fs.rm(req.file.path,{force:true},()=>{}); return res.status(code).json({error:msg}); };
+  const appleId = String(req.body.appleId || '').trim();
+  const password = String(req.body.password || '');
+  const udid = String(req.body.udid || '').toUpperCase();
+  if (!req.file) return fail(400,'Выбери IPA-файл');
+  if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(appleId) || !password) return fail(400,'Проверь Apple ID и пароль');
+  if (!knownUdid(udid)) return fail(400,'Сначала получи и подтверди UDID на этом устройстве');
+  const accountKey = crypto.createHash('sha256').update(appleId.toLowerCase()).digest('hex');
+  if (appleLocks.has(accountKey)) return fail(409,'Для этого Apple ID уже выполняется подписание');
+  let meta;
+  try {
+    const z = new AdmZip(req.file.path);
+    const e = z.getEntries().find(x => /^Payload\\/[^/]+\\.app\\/Info\\.plist$/.test(x.entryName));
+    if (!e) throw new Error('Info.plist не найден');
+    const p = plist.parse(e.getData());
+    meta = {name:p.CFBundleDisplayName || p.CFBundleName || 'App',bundle:p.CFBundleIdentifier,version:p.CFBundleShortVersionString || '1.0'};
+    if (!meta.bundle) throw new Error('Bundle ID не найден');
+  } catch(e) { return fail(400,'Некорректный IPA: '+e.message); }
+
+  const id = crypto.randomBytes(12).toString('hex');
+  const work = path.join(ROOT,'apple-jobs',id);
+  const config = path.join(ROOT,'apple-accounts',accountKey);
+  fs.mkdirSync(work,{recursive:true,mode:0o700});
+  fs.mkdirSync(config,{recursive:true,mode:0o700});
+  try { fs.chmodSync(work,0o700); fs.chmodSync(config,0o700); } catch(_){}
+  const input = path.join(work,'input.ipa'), output = path.join(work,'signed.ipa');
+  fs.renameSync(req.file.path,input);
+  const session = {id,work,input,output,config,appleId, password,udid,meta,status:'starting',message:'Запускаю безопасный вход Apple…',error:'',buffer:'',sentId:false,sentPassword:false,waitingCode:false,created:Date.now(),proc:null};
+  appleSessions.set(id,session);
+  appleLocks.add(accountKey);
+  try {
+    const proc = pty.spawn('sideloader',['starksign','--interactive','--udid',udid,'--input',input,'--output',output],{
+      name:'xterm-256color',cols:100,rows:30,cwd:'/app',
+      env:{...process.env,SIDELOADER_CONFIG_DIR:config,TERM:'xterm-256color'}
+    });
+    session.proc = proc;
+    proc.onData(data => {
+      const clean = data.replace(/\\x1b\\[[0-?]*[ -/]*[@-~]/g,'').replace(/\\r/g,'');
+      session.buffer = (session.buffer + clean).slice(-12000);
+      const tail = session.buffer.slice(-500);
+      if (!session.sentId && /Apple ID:\\s*$/i.test(tail)) {
+        session.sentId = true; proc.write(session.appleId+'\\r'); session.appleId='';
+        session.status='authenticating'; session.message='Проверяю Apple ID…';
+      }
+      if (session.sentId && !session.sentPassword && /Password:\\s*$/i.test(tail)) {
+        session.sentPassword = true; proc.write(session.password+'\\r'); session.password='';
+        session.status='authenticating'; session.message='Выполняю вход в Apple…';
+      }
+      if (/type .?resend.? to resend one|please type it here/i.test(tail)) {
+        session.waitingCode = true; session.status='awaiting_code';
+        session.message='Apple отправила код подтверждения. Введи 6-значный код.';
+      }
+      if (/Signing application|Signing .*\\.app/i.test(tail)) {
+        session.status='signing'; session.message='Создаю сертификат, профиль и подписываю IPA…';
+      }
+      if (/STARKSIGN_SUCCESS:/i.test(tail)) {
+        session.status='packaging'; session.message='Подпись готова, завершаю упаковку…';
+      }
+    });
+    proc.onExit(({exitCode}) => {
+      appleLocks.delete(accountKey);
+      session.password=''; session.appleId=''; session.proc=null; session.waitingCode=false;
+      if (exitCode === 0 && fs.existsSync(output)) {
+        session.status='complete'; session.message='IPA успешно подписан';
+        try { fs.rmSync(input,{force:true}); } catch(_){}
+      } else {
+        session.status='error';
+        const safe = session.buffer.replaceAll(appleId,'[Apple ID]').slice(-1800);
+        session.error = safe || ('Sideloader завершился с кодом '+exitCode);
+        session.message='Не удалось подписать IPA';
+        try { fs.rmSync(input,{force:true}); fs.rmSync(output,{force:true}); } catch(_){}
+      }
+    });
+    res.status(202).json(applePublicStatus(session));
+  } catch(e) {
+    appleLocks.delete(accountKey); appleSessions.delete(id);
+    fs.rmSync(work,{recursive:true,force:true});
+    return res.status(500).json({error:'Не удалось запустить Sideloader: '+e.message});
+  }
+});
+
+app.post('/api/apple/code/:id', appleAccess, express.json({limit:'2kb'}), (req,res) => {
+  const s=appleSessions.get(req.params.id), code=String(req.body.code || '').trim();
+  if (!s || s.status !== 'awaiting_code' || !s.proc || !s.waitingCode) return res.status(409).json({error:'Сейчас код подтверждения не ожидается'});
+  if (!/^\\d{4,8}$/.test(code)) return res.status(400).json({error:'Введи код из SMS или доверенного устройства'});
+  s.waitingCode=false; s.status='authenticating'; s.message='Проверяю код Apple…';
+  s.proc.write(code+'\\r');
+  res.json({ok:true});
+});
+app.get('/api/apple/status/:id', appleAccess, (req,res) => {
+  const s=appleSessions.get(req.params.id);
+  if (!s) return res.status(404).json({error:'Задача не найдена'});
+  res.json({...applePublicStatus(s),error:s.error});
+});
+app.get('/api/apple/download/:id.ipa', (req,res) => {
+  const s=appleSessions.get(req.params.id);
+  if (!s || s.status !== 'complete' || !fs.existsSync(s.output)) return res.sendStatus(404);
+  res.download(s.output, (s.meta.name || 'signed')+'.ipa');
+});
+setInterval(() => {
+  const cutoff=Date.now()-TTL;
+  for (const [id,s] of appleSessions) if (s.created<cutoff) {
+    if (s.proc) { try { s.proc.kill(); } catch(_){} }
+    try { fs.rmSync(s.work,{recursive:true,force:true}); } catch(_){}
+    appleSessions.delete(id);
+    appleLocks.delete(crypto.createHash('sha256').update((s.appleId||'').toLowerCase()).digest('hex'));
+  }
+},60*60*1000).unref();
 
 app.listen(process.env.PORT || 3000, () => console.log('Stark Sign server started; temporary data: ' + ROOT));
 
