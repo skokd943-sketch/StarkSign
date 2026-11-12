@@ -2,26 +2,61 @@ module starksign;
 
 import std.algorithm;
 import std.array;
-import std.file;
 import std.exception;
+import std.file;
 import std.path;
 import std.process;
 import std.stdio;
 import std.string;
+import std.typecons;
 
 import argparse;
 import provision;
 import slf4d;
+import app;
+import server.appleaccount : Success, ReloginNeeded, AppleLoginError;
 import server.developersession;
 import sideload.application;
 import sideload.certificateidentity;
 import sideload.sign : sideloadSign;
-import cli_frontend;
+
+extern(C) char* getpass(const(char)* prompt);
+
+private string readApplePassword(string prompt) {
+    return fromStringz(cast(immutable) getpass(prompt.toStringz()));
+}
+
+private DeveloperSession loginApple(Device device, ADI adi) {
+    write("Apple ID: ");
+    auto appleId = readln().chomp();
+    auto password = readApplePassword("Password: ");
+    return DeveloperSession.login(device, adi, appleId, password,
+        (sendCode, submitCode) {
+            sendCode();
+            string code;
+            do {
+                write("A code has been sent to your devices, please type it here (type `resend` to resend one): ");
+                code = readln().chomp();
+                if (code == "resend") {
+                    sendCode();
+                    continue;
+                }
+            } while (submitCode(code).match!(
+                (Success _) => false,
+                (ReloginNeeded _) => false,
+                (AppleLoginError _) => true
+            ));
+        }
+    ).match!(
+        (DeveloperSession session) => session,
+        (AppleLoginError error) {
+            throw new Exception(error.description);
+        }
+    );
+}
 
 @(Command("starksign").Description("Register an iPhone and sign an IPA with a free Apple Developer account."))
 struct StarkSignCommand {
-    mixin LoginCommand;
-
     @(NamedArgument("udid").Description("iPhone UDID obtained by Stark Sign enrollment.").Required())
     string udid;
 
@@ -35,12 +70,15 @@ struct StarkSignCommand {
         enforce(isValidUdid(udid), "Invalid UDID.");
         enforce(exists(input) && isFile(input), "Input IPA not found.");
 
-        auto config = systemConfigurationPath();
-        scope data = initializeADI(config);
+        string config = environment.get("SIDELOADER_CONFIG_DIR").orDefault("/tmp/starksign-account");
+        if (!(exists(buildPath(config,"lib","libstoreservicescore.so")) && exists(buildPath(config,"lib","libCoreADI.so")))) {
+            mkdirRecurse(config);
+            enforce(downloadAndInstallDeps(config, (float progress) => false), "Failed to download Apple ADI libraries.");
+        }
+        scope data = app.initializeADI(config);
         scope adi = data.adi;
         scope device = data.device;
-        auto account = login(device, adi);
-        enforce(account !is null, "Apple ID login failed.");
+        auto account = loginApple(device, adi);
 
         auto teams = account.listTeams().unwrap();
         enforce(teams.length > 0, "Apple account has no development team.");
@@ -51,9 +89,9 @@ struct StarkSignCommand {
             account.addDevice!iOS(team, "Stark Sign iPhone", udid).unwrap();
         }
 
-        auto app = new Application(input);
-        scope(exit) { if (app.tempPath.length && exists(app.tempPath)) rmdirRecurse(app.tempPath); }
-        auto bundleId = app.bundleIdentifier();
+        auto appBundle = new Application(input);
+        scope(exit) { if (appBundle.tempPath.length && exists(appBundle.tempPath)) rmdirRecurse(appBundle.tempPath); }
+        auto bundleId = appBundle.bundleIdentifier();
         enforce(bundleId.length > 0, "IPA has no CFBundleIdentifier.");
 
         ProvisioningProfile[string] profiles;
@@ -69,21 +107,19 @@ struct StarkSignCommand {
             enforce(matching.length > 0, "Apple did not create App ID: " ~ identifier);
             profiles[identifier] = account.downloadTeamProvisioningProfile!iOS(team, matching[0]).unwrap();
         }
-        addProfile(bundleId, app.bundleName());
-        foreach (sub; app.subBundles()) {
-            if (sub.bundleDir.endsWith(".appex")) {
-                addProfile(sub.bundleIdentifier(), sub.bundleName());
-            }
+        addProfile(bundleId, appBundle.bundleName());
+        foreach (sub; appBundle.subBundles()) {
+            if (sub.bundleDir.endsWith(".appex")) addProfile(sub.bundleIdentifier(), sub.bundleName());
         }
 
         auto identity = new CertificateIdentity(config, account);
-        sideloadSign(app, identity, profiles, (double p) {}, true, team.teamId);
+        sideloadSign(appBundle, identity, profiles, (double progress) {}, true, team.teamId);
 
         auto out = absolutePath(output);
         auto outDir = dirName(out);
         if (!exists(outDir)) mkdirRecurse(outDir);
         if (exists(out)) remove(out);
-        auto result = executeShell("cd " ~ app.tempPath ~ " && zip -qr " ~ out ~ " Payload");
+        auto result = executeShell("cd " ~ appBundle.tempPath ~ " && zip -qr " ~ out ~ " Payload");
         enforce(result.status == 0 && exists(out), "Failed to package signed IPA: " ~ result.output);
 
         writeln("STARKSIGN_SUCCESS:", out);
