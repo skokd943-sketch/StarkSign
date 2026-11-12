@@ -54,6 +54,7 @@ private DeveloperSession loginApple(Device device, ADI adi) {
         (DeveloperSession session) => session,
         (AppleLoginError error) {
             throw new Exception(error.description);
+            return DeveloperSession.init;
         }
     );
 }
@@ -101,7 +102,7 @@ struct StarkSignCommand {
         enforce(bundleId.length > 0, "IPA has no CFBundleIdentifier.");
 
         auto identity = new CertificateIdentity(config, account);
-        if (identity.keyFile.length && exists(identity.keyFile)) chmod(identity.keyFile, 384);
+        if (identity.keyFile.length && exists(identity.keyFile)) chmod(identity.keyFile.toStringz(), 384u);
         writeln("STARKSIGN_CERT_OK");
 
         ProvisioningProfile[string] profiles;
