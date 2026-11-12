@@ -6,9 +6,10 @@ RUN git clone --depth 1 https://github.com/zhlynn/zsign /tmp/zsign && cd /tmp/zs
     else cd build/linux && make clean && make && cp ../../bin/zsign /usr/local/bin/zsign; fi \
  && rm -rf /tmp/zsign
 
-# --- РАЗВЕДКА: Sideloader (вход по Apple ID). Если не соберётся, сервер всё равно работает ---
-RUN apt-get update && (apt-get install -y --no-install-recommends curl xz-utils libimobiledevice-dev libplist-dev || echo "SIDELOADER_DEPS_FAILED") \
+# --- Sideloader: secure Apple account and provisioning backend ---
+RUN apt-get update && apt-get install -y --no-install-recommends curl xz-utils libimobiledevice-dev libplist-dev \\
  && rm -rf /var/lib/apt/lists/*
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN ( curl -fsSL https://github.com/ldc-developers/ldc/releases/download/v1.36.0/ldc2-1.36.0-linux-x86_64.tar.xz | tar -xJ -C /opt \
  && export PATH=/opt/ldc2-1.36.0-linux-x86_64/bin:$PATH \
  && git clone --depth 1 https://github.com/Dadoum/Sideloader /opt/sideloader && cd /opt/sideloader \
