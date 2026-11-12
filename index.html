@@ -18,7 +18,7 @@
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body,.view{touch-action:pan-y;-webkit-text-size-adjust:100%}
-button,a,input,select{touch-action:manipulation}
+button,a,input,select{touch-action:manipulation}button,a,.sw{cursor:pointer}button:disabled{cursor:wait}
 html,body{margin:0;height:100%;background:var(--bg);color:var(--text);
   font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Inter",system-ui,sans-serif;overscroll-behavior:none}
 body{overflow:hidden}
@@ -44,7 +44,7 @@ h1{font-size:44px;line-height:1.05;margin:8px 0 22px;font-weight:800;letter-spac
 .c-blue{background:linear-gradient(135deg,#1217ff,#2b3dff);animation:pulse 5s ease-in-out infinite}
 @keyframes pulse{50%{box-shadow:0 0 50px rgba(31,35,255,.55)}}
 .c-sky{background:linear-gradient(160deg,#1f6fff,#4fb8ff 70%,#8fd8ff);min-height:230px}
-.c-sky::after{content:"";position:absolute;inset:-40%;
+.c-sky::after{content:"";position:absolute;inset:-40%;pointer-events:none;
   background:conic-gradient(from 0deg,transparent,rgba(255,255,255,.28),transparent 30%);animation:spin 7s linear infinite}
 .c-sky>*{position:relative;z-index:1}
 @keyframes spin{to{transform:rotate(1turn)}}
@@ -185,7 +185,7 @@ const $=q=>document.querySelector(q);
 // запрет зума двумя пальцами и двойным тапом
 ['gesturestart','gesturechange','gestureend'].forEach(t=>document.addEventListener(t,e=>e.preventDefault()));
 document.addEventListener('touchmove',e=>{if(e.touches.length>1)e.preventDefault()},{passive:false});
-let lt=0;document.addEventListener('touchend',e=>{const n=Date.now();if(n-lt<350)e.preventDefault();lt=n},{passive:false});
+// Не отменяем touchend: iOS Safari использует его для синтеза click. Двойной тап не блокируем глобально.
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fmt=b=>b>1048576?(b/1048576).toFixed(1)+' МБ':Math.ceil(b/1024)+' КБ';
 function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),2600)}
@@ -228,7 +228,7 @@ $('#mine').onclick=async e=>{const id=e.target.dataset.del;if(!id)return;await t
 $('#login').onclick=()=>toast('Вход Apple ID будет добавлен после безопасной проверки 2FA');
 let udidPoll=null;
 $('#getudid').onclick=async()=>{
-  const b=$('#getudid'),out=$('#udidstatus'),srv=(localStorage.srv||location.origin).replace(/\\/+$/,'');
+  const b=$('#getudid'),out=$('#udidstatus'),srv=(localStorage.srv||location.origin).replace(/\/+$/,'');
   try{b.disabled=true;b.textContent='Создаю профиль…';
     const r=await fetch(srv+'/api/udid/start',{method:'POST'}),j=await r.json();if(!r.ok)throw Error(j.error||'Ошибка сервера');
     localStorage.udidToken=j.token;localStorage.udidServer=srv;out.textContent='Открой профиль и подтверди установку в Настройках iPhone. Запрос действует 20 минут.';
