@@ -1,5 +1,7 @@
 module starksign;
 
+import core.sys.posix.sys.stat : chmod;
+
 import std.algorithm;
 import std.array;
 import std.exception;
@@ -7,6 +9,7 @@ import std.file;
 import std.path;
 import std.process;
 import std.stdio;
+import std.sumtype;
 import std.string;
 import std.typecons;
 
@@ -14,7 +17,7 @@ import argparse;
 import provision;
 import slf4d;
 import app;
-import server.appleaccount : Success, ReloginNeeded, AppleLoginError;
+import server.appleaccount : Success, ReloginNeeded, AppleLoginError, AppleSecondaryActionResponse;
 import server.developersession;
 import sideload.application;
 import sideload.certificateidentity;
@@ -31,7 +34,7 @@ private DeveloperSession loginApple(Device device, ADI adi) {
     auto appleId = readln().chomp();
     auto password = readApplePassword("Password: ");
     return DeveloperSession.login(device, adi, appleId, password,
-        (sendCode, submitCode) {
+        (bool delegate() sendCode, AppleSecondaryActionResponse delegate(string) submitCode) {
             sendCode();
             string code;
             do {
@@ -70,7 +73,8 @@ struct StarkSignCommand {
         enforce(isValidUdid(udid), "Invalid UDID.");
         enforce(exists(input) && isFile(input), "Input IPA not found.");
 
-        string config = environment.get("SIDELOADER_CONFIG_DIR").orDefault("/tmp/starksign-account");
+        string config = environment.get("SIDELOADER_CONFIG_DIR");
+        if (config.length == 0) config = "/tmp/starksign-account";
         if (!(exists(buildPath(config,"lib","libstoreservicescore.so")) && exists(buildPath(config,"lib","libCoreADI.so")))) {
             mkdirRecurse(config);
             enforce(downloadAndInstallDeps(config, (float progress) => false), "Failed to download Apple ADI libraries.");
