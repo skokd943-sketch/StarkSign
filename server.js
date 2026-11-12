@@ -74,7 +74,7 @@ app.get('/api/manifest/:id.plist', (req, res) => {
 <plist version="1.0"><dict><key>items</key><array><dict>
 <key>assets</key><array><dict><key>kind</key><string>software-package</string><key>url</key><string>${esc(url)}</string></dict></array>
 <key>metadata</key><dict><key>bundle-identifier</key><string>${esc(m.bundle)}</string><key>bundle-version</key><string>${esc(m.version)}</string><key>kind</key><string>software</string><key>title</key><string>${esc(m.name)}</string></dict>
-</dict></array></dict></array></dict></plist>`);
+</dict></array></dict></plist>`);
 });
 
 app.get('/api/ipa/:id.ipa', (req, res) => {
