@@ -261,7 +261,7 @@ app.post('/api/apple/start', appleAccess, up.single('ipa'), (req,res) => {
   try { fs.chmodSync(work,0o700); fs.chmodSync(config,0o700); } catch(_){}
   const input = path.join(work,'input.ipa'), output = path.join(work,'signed.ipa');
   fs.renameSync(req.file.path,input);
-  const session = {id,work,input,output,config,appleId, password,udid,meta,status:'starting',message:'Запускаю безопасный вход Apple…',error:'',buffer:'',sentId:false,sentPassword:false,waitingCode:false,created:Date.now(),proc:null};
+  const session = {id,work,input,output,config,accountKey,appleId, password,udid,meta,status:'starting',message:'Запускаю безопасный вход Apple…',error:'',buffer:'',sentId:false,sentPassword:false,waitingCode:false,created:Date.now(),proc:null};
   appleSessions.set(id,session);
   appleLocks.add(accountKey);
   try {
@@ -339,7 +339,7 @@ setInterval(() => {
     if (s.proc) { try { s.proc.kill(); } catch(_){} }
     try { fs.rmSync(s.work,{recursive:true,force:true}); } catch(_){}
     appleSessions.delete(id);
-    appleLocks.delete(crypto.createHash('sha256').update((s.appleId||'').toLowerCase()).digest('hex'));
+    appleLocks.delete(s.accountKey);
   }
 },60*60*1000).unref();
 
