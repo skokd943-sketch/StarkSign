@@ -20,11 +20,9 @@ RUN ( curl -fsSL https://github.com/ldc-developers/ldc/releases/download/v1.36.0
  && sed -i 's/ToolCommand, VersionCommand/ToolCommand, StarkSignCommand, VersionCommand/' frontends/cli/source/cli_frontend.d \
  && sed -i 's/sslSetVerifyPeer(false)/sslSetVerifyPeer(true)/g' source/server/appleaccount.d \
  && sed -i 's/sslSetVerifyPeer(false)/sslSetVerifyPeer(true)/g' source/app/package.d \
- && echo "SIDELOADER_CONFIGS:" && dub build --print-configs --compiler=ldc2 2>&1 | tail -20 \
- && CFG=$(dub build --print-configs --compiler=ldc2 2>/dev/null | grep -i cli | head -1 | sed 's/^ *//; s/ .*//') \
- && echo "SIDELOADER_CFG=$CFG" \
- && dub build -b release --compiler=ldc2 --config="$CFG" 2>&1 | tail -60 \
- && ls -la bin && cp bin/sideloader /usr/local/bin/sideloader ) || (echo "SIDELOADER_BUILD_FAILED" && exit 1)
+ && cd frontends/cli \
+ && dub build -b release --compiler=ldc2 2>&1 | tee /tmp/sideloader-build.log \
+ && cp ../../bin/sideloader /usr/local/bin/sideloader ) || (echo "SIDELOADER_BUILD_FAILED" && exit 1)
 
 WORKDIR /app
 COPY package.json .
