@@ -233,7 +233,7 @@ $('#getudid').onclick=async()=>{
     clearInterval(udidPoll);udidPoll=setInterval(async()=>{try{const x=await fetch(srv+'/api/udid/status/'+j.token),v=await x.json();if(v.status==='complete'){clearInterval(udidPoll);out.textContent='UDID получен и проверен: '+v.udid;toast('Устройство подтверждено');}}catch(e){}},3000);
   }catch(e){out.textContent=e.message;toast(e.message)}finally{b.disabled=false;b.textContent='Получить UDID автоматически'}
 };
-if(localStorage.udidToken&&localStorage.udidServer){const t=localStorage.udidToken,s=localStorage.udidServer;fetch(s+'/api/udid/status/'+t).then(r=>r.json()).then(v=>{if(v.status==='complete')$('#udidstatus').textContent='UDID получен и проверен: '+v.udid;}).catch(()=>{});}
+if(localStorage.udidToken&&localStorage.udidServer){const t=localStorage.udidToken,s=localStorage.udidServer;const checkUdid=async()=>{try{const r=await fetch(s+'/api/udid/status/'+t),v=await r.json();if(v.status==='complete'){clearInterval(udidPoll);$('#udidstatus').textContent='UDID получен и проверен: '+v.udid;}}catch(e){}};checkUdid();udidPoll=setInterval(checkUdid,4000);}
 $('#refresh').onclick=()=>{loadRepo();toast('Список обновлён')};
 setInterval(()=>{if(!document.hidden&&$('#v2').classList.contains('on'))loadRepo()},30000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&$('#v2').classList.contains('on'))loadRepo()});
