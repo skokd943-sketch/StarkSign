@@ -50,6 +50,7 @@ struct StarkSignCommand {
         }
 
         auto app = new Application(input);
+        scope(exit) { if (app.tempPath.length && exists(app.tempPath)) rmdirRecurse(app.tempPath); }
         auto bundleId = app.bundleIdentifier();
         enforce(bundleId.length > 0, "IPA has no CFBundleIdentifier.");
 
@@ -71,7 +72,7 @@ struct StarkSignCommand {
         auto outDir = dirName(out);
         if (!exists(outDir)) mkdirRecurse(outDir);
         if (exists(out)) remove(out);
-        auto result = execute(["zip", "-qr", out, "Payload"], Config(workDir: app.tempPath));
+        auto result = execute(["zip", "-qr", out, "Payload"], null, Config.none, 1024 * 1024, app.tempPath);
         enforce(result.status == 0 && exists(out), "Failed to package signed IPA: " ~ result.output);
 
         writeln("STARKSIGN_SUCCESS:", out);
