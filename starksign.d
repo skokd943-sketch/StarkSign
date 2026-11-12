@@ -18,7 +18,7 @@ import server.appleaccount : Success, ReloginNeeded, AppleLoginError;
 import server.developersession;
 import sideload.application;
 import sideload.certificateidentity;
-import sideload.sign : sideloadSign;
+import sideload.sign : sideloadSign = sign;
 
 extern(C) char* getpass(const(char)* prompt);
 
