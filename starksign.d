@@ -94,6 +94,9 @@ struct StarkSignCommand {
         auto bundleId = appBundle.bundleIdentifier();
         enforce(bundleId.length > 0, "IPA has no CFBundleIdentifier.");
 
+        auto identity = new CertificateIdentity(config, account);
+        if (identity.keyFile.length && exists(identity.keyFile)) chmod(identity.keyFile, 0o600);
+
         ProvisioningProfile[string] profiles;
         void addProfile(string identifier, string displayName) {
             auto ids = account.listAppIds!iOS(team).unwrap();
@@ -112,8 +115,6 @@ struct StarkSignCommand {
             if (sub.bundleDir.endsWith(".appex")) addProfile(sub.bundleIdentifier(), sub.bundleName());
         }
 
-        auto identity = new CertificateIdentity(config, account);
-        if (identity.keyFile.length && exists(identity.keyFile)) chmod(identity.keyFile, 0o600);
         sideloadSign(appBundle, identity, profiles, (double progress) {}, true, team.teamId);
 
         auto out = absolutePath(output);
