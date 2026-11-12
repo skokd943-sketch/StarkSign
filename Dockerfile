@@ -10,6 +10,7 @@ RUN git clone --depth 1 https://github.com/zhlynn/zsign /tmp/zsign && cd /tmp/zs
 RUN apt-get update && apt-get install -y --no-install-recommends curl xz-utils libimobiledevice-dev libplist-dev \
  && rm -rf /var/lib/apt/lists/*
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+COPY starksign.d /tmp/starksign.d
 RUN ( curl -fsSL https://github.com/ldc-developers/ldc/releases/download/v1.36.0/ldc2-1.36.0-linux-x86_64.tar.xz | tar -xJ -C /opt \
  && export PATH=/opt/ldc2-1.36.0-linux-x86_64/bin:$PATH \
  && git clone --depth 1 https://github.com/Dadoum/Sideloader /opt/sideloader && cd /opt/sideloader \
@@ -26,7 +27,6 @@ RUN ( curl -fsSL https://github.com/ldc-developers/ldc/releases/download/v1.36.0
  && ls -la bin && cp bin/sideloader /usr/local/bin/sideloader ) || (echo "SIDELOADER_BUILD_FAILED" && exit 1)
 
 WORKDIR /app
-COPY starksign.d /tmp/starksign.d
 COPY package.json .
 RUN npm install --omit=dev
 COPY server.js .
