@@ -227,6 +227,10 @@ function appleRateLimit(req,res,next) {
 const appleAccess = (req,res,next) => (KEY && req.get('x-key') !== KEY)
   ? res.status(401).json({error:'Неверный ключ доступа'}) : next();
 
+function requireAppleHttps(req,res,next) {
+  if (!req.secure && !['localhost','127.0.0.1'].includes(req.hostname)) return res.status(400).json({error:'Вход Apple ID разрешён только по HTTPS'});
+  next();
+}
 function knownUdid(value) {
   if (!/^[A-Fa-f0-9]{40}$/.test(String(value || ''))) return false;
   try {
@@ -240,7 +244,7 @@ function applePublicStatus(s) {
     name:s.meta && s.meta.name, bundle:s.meta && s.meta.bundle, version:s.meta && s.meta.version};
 }
 
-app.post('/api/apple/start', appleAccess, appleRateLimit, up.single('ipa'), (req,res) => {
+app.post('/api/apple/start', appleAccess, appleRateLimit, requireAppleHttps, up.single('ipa'), (req,res) => {
   const fail = (code,msg) => { if(req.file) fs.rm(req.file.path,{force:true},()=>{}); return res.status(code).json({error:msg}); };
   const appleId = String(req.body.appleId || '').trim();
   const password = String(req.body.password || '');
