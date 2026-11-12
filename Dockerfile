@@ -11,19 +11,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl xz-utils l
  && rm -rf /var/lib/apt/lists/*
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 COPY starksign.d /tmp/starksign.d
-RUN ( curl -fsSL https://github.com/ldc-developers/ldc/releases/download/v1.36.0/ldc2-1.36.0-linux-x86_64.tar.xz | tar -xJ -C /opt \
+RUN set -euxo pipefail \
+ && curl -fsSL https://github.com/ldc-developers/ldc/releases/download/v1.36.0/ldc2-1.36.0-linux-x86_64.tar.xz -o /tmp/ldc.tar.xz \
+ && tar -xJf /tmp/ldc.tar.xz -C /opt \
  && export PATH=/opt/ldc2-1.36.0-linux-x86_64/bin:$PATH \
- && git clone --depth 1 https://github.com/Dadoum/Sideloader /opt/sideloader && cd /opt/sideloader \
+ && git clone --depth 1 https://github.com/Dadoum/Sideloader /opt/sideloader \
+ && cd /opt/sideloader \
  && cp /tmp/starksign.d frontends/cli/source/starksign.d \
  && sed -i '/^import tool;$/a import starksign;' frontends/cli/source/cli_frontend.d \
- && sed -i '/(ToolCommand cmd) => cmd(),/a\                (StarkSignCommand cmd) => cmd(),' frontends/cli/source/cli_frontend.d \
+ && sed -i '/(ToolCommand cmd) => cmd(),/a\\                (StarkSignCommand cmd) => cmd(),' frontends/cli/source/cli_frontend.d \
  && sed -i 's/ToolCommand, VersionCommand/ToolCommand, StarkSignCommand, VersionCommand/' frontends/cli/source/cli_frontend.d \
  && sed -i 's/sslSetVerifyPeer(false)/sslSetVerifyPeer(true)/g' source/server/appleaccount.d \
  && sed -i 's/sslSetVerifyPeer(false)/sslSetVerifyPeer(true)/g' source/app/package.d \
  && cd frontends/cli \
- && dub build -b release --compiler=ldc2 2>&1 | tee /tmp/sideloader-build.log \
- && cp ../../bin/sideloader /usr/local/bin/sideloader \
- && sideloader starksign --help >/dev/null ) || (echo "SIDELOADER_BUILD_FAILED" && exit 1)
+ && dub build -b release --compiler=ldc2 \
+ && test -x ../../bin/sideloader \
+ && install -m 0755 ../../bin/sideloader /usr/local/bin/sideloader \
+ && sideloader starksign --help
 
 WORKDIR /app
 COPY package.json .
