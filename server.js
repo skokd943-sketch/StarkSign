@@ -217,6 +217,13 @@ setInterval(()=>{const now=Date.now();for(const [t,s] of enrollments)if(now-s.cr
    The Apple account's local ADI/key material is isolated by Apple-ID hash. */
 const appleSessions = new Map();
 const appleLocks = new Set();
+const appleAttempts = new Map();
+function appleRateLimit(req,res,next) {
+  const ip=String(req.ip || req.socket.remoteAddress || 'unknown'), now=Date.now();
+  const recent=(appleAttempts.get(ip)||[]).filter(t=>now-t<60*60*1000);
+  if(recent.length>=5) return res.status(429).json({error:'Слишком много попыток входа. Попробуй через час.'});
+  recent.push(now); appleAttempts.set(ip,recent); next();
+}
 const appleAccess = (req,res,next) => (KEY && req.get('x-key') !== KEY)
   ? res.status(401).json({error:'Неверный ключ доступа'}) : next();
 
@@ -233,7 +240,7 @@ function applePublicStatus(s) {
     name:s.meta && s.meta.name, bundle:s.meta && s.meta.bundle, version:s.meta && s.meta.version};
 }
 
-app.post('/api/apple/start', appleAccess, up.single('ipa'), (req,res) => {
+app.post('/api/apple/start', appleAccess, appleRateLimit, up.single('ipa'), (req,res) => {
   const fail = (code,msg) => { if(req.file) fs.rm(req.file.path,{force:true},()=>{}); return res.status(code).json({error:msg}); };
   const appleId = String(req.body.appleId || '').trim();
   const password = String(req.body.password || '');
@@ -301,7 +308,7 @@ app.post('/api/apple/start', appleAccess, up.single('ipa'), (req,res) => {
         try { fs.rmSync(input,{force:true}); } catch(_){}
       } else {
         session.status='error';
-        const safe = session.buffer.replaceAll(appleId,'[Apple ID]').slice(-1800);
+        const safe = session.buffer.replaceAll(appleId,'[Apple ID]').replaceAll(password,'[REDACTED]').slice(-1800);
         session.error = safe || ('Sideloader завершился с кодом '+exitCode);
         session.message='Не удалось подписать IPA';
         try { fs.rmSync(input,{force:true}); fs.rmSync(output,{force:true}); } catch(_){}
