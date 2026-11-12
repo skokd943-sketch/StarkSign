@@ -97,7 +97,7 @@ struct StarkSignCommand {
         enforce(bundleId.length > 0, "IPA has no CFBundleIdentifier.");
 
         auto identity = new CertificateIdentity(config, account);
-        if (identity.keyFile.length && exists(identity.keyFile)) chmod(identity.keyFile, 0o600);
+        if (identity.keyFile.length && exists(identity.keyFile)) chmod(identity.keyFile, 384);
         writeln("STARKSIGN_CERT_OK");
 
         ProvisioningProfile[string] profiles;
