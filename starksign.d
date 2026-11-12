@@ -29,6 +29,10 @@ private string readApplePassword(string prompt) {
     return fromStringz(cast(immutable) getpass(prompt.toStringz()));
 }
 
+private DeveloperSession appleLoginFailure(AppleLoginError error) {
+    throw new Exception(error.description);
+}
+
 private DeveloperSession loginApple(Device device, ADI adi) {
     write("Apple ID: ");
     auto appleId = readln().chomp();
@@ -52,10 +56,7 @@ private DeveloperSession loginApple(Device device, ADI adi) {
         }
     ).match!(
         (DeveloperSession session) => session,
-        (AppleLoginError error) {
-            throw new Exception(error.description);
-            return DeveloperSession.init;
-        }
+        (AppleLoginError error) => appleLoginFailure(error)
     );
 }
 
