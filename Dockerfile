@@ -12,11 +12,13 @@ RUN apt-get update && (apt-get install -y --no-install-recommends curl xz-utils 
 RUN ( curl -fsSL https://github.com/ldc-developers/ldc/releases/download/v1.36.0/ldc2-1.36.0-linux-x86_64.tar.xz | tar -xJ -C /opt \
  && export PATH=/opt/ldc2-1.36.0-linux-x86_64/bin:$PATH \
  && git clone --depth 1 https://github.com/Dadoum/Sideloader /opt/sideloader && cd /opt/sideloader \
+ && sed -i 's/sslSetVerifyPeer(false)/sslSetVerifyPeer(true)/g' source/server/appleaccount.d \
+ && sed -i 's/sslSetVerifyPeer(false)/sslSetVerifyPeer(true)/g' source/app/package.d \
  && echo "SIDELOADER_CONFIGS:" && dub build --print-configs --compiler=ldc2 2>&1 | tail -20 \
  && CFG=$(dub build --print-configs --compiler=ldc2 2>/dev/null | grep -i cli | head -1 | sed 's/^ *//; s/ .*//') \
  && echo "SIDELOADER_CFG=$CFG" \
  && dub build -b release --compiler=ldc2 --config="$CFG" 2>&1 | tail -60 \
- && ls -la bin && cp bin/sideloader /usr/local/bin/sideloader ) || echo "SIDELOADER_BUILD_FAILED"
+ && ls -la bin && cp bin/sideloader /usr/local/bin/sideloader ) || (echo "SIDELOADER_BUILD_FAILED" && exit 1)
 
 WORKDIR /app
 COPY package.json .
