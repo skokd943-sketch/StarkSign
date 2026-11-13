@@ -138,16 +138,26 @@ function ensureProfileSigner() {
 ensureProfileSigner();
 const xmlEsc = v => String(v).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function plistString(v) { return '<string>'+xmlEsc(v)+'</string>'; }
+// ВАЖНО: по документации Apple (Profile Service Payload) сам верхнеуровневый
+// .mobileconfig ДОЛЖЕН иметь PayloadType "Profile Service", а PayloadContent —
+// это словарь (URL/DeviceAttributes/Challenge), а не массив вложенных payload'ов.
+// Если обернуть это в профиль типа "Configuration" (как было раньше), iOS
+// ставит профиль как обычный пустой конфиг и НЕ шлёт автоматический callback
+// с UDID — внешне выглядит так, будто "после установки ничего не происходит".
 function profileXml(token, challenge, req) {
   const base = (process.env.PUBLIC_URL || ('https://' + req.get('host'))).replace(/\/+$/,'');
-  const payload = '<dict><key>PayloadType</key>'+plistString('Profile Service')+
-    '<key>PayloadVersion</key><integer>1</integer><key>PayloadIdentifier</key>'+plistString('com.starksign.udid.profile-service')+
-    '<key>PayloadUUID</key>'+plistString(crypto.randomUUID())+
-    '<key>PayloadDisplayName</key>'+plistString('Stark Sign — получение UDID')+
-    '<key>PayloadDescription</key>'+plistString('Запрашивается только UDID устройства для подготовки подписи приложения.')+
-    '<key>PayloadContent</key><dict><key>URL</key>'+plistString(base+'/api/udid/response/'+token)+
-    '<key>DeviceAttributes</key><array>'+plistString('UDID')+'</array><key>Challenge</key>'+plistString(challenge)+'</dict></dict>';
-  return '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"><plist version="1.0"><dict><key>PayloadContent</key><array>'+payload+'</array><key>PayloadDescription</key>'+plistString('Одноразовый запрос идентификатора устройства для Stark Sign')+'<key>PayloadDisplayName</key>'+plistString('Stark Sign UDID')+'<key>PayloadIdentifier</key>'+plistString('com.starksign.udid.'+token)+'<key>PayloadOrganization</key>'+plistString('Stark Sign')+'<key>PayloadRemovalDisallowed</key><false/><key>PayloadType</key>'+plistString('Configuration')+'<key>PayloadUUID</key>'+plistString(crypto.randomUUID())+'<key>PayloadVersion</key><integer>1</integer></dict></plist>';
+  return '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"><plist version="1.0"><dict>'
+    + '<key>PayloadContent</key><dict><key>URL</key>'+plistString(base+'/api/udid/response/'+token)
+    + '<key>DeviceAttributes</key><array>'+plistString('UDID')+'</array>'
+    + '<key>Challenge</key>'+plistString(challenge)+'</dict>'
+    + '<key>PayloadDescription</key>'+plistString('Запрашивается только UDID устройства для подготовки подписи приложения.')
+    + '<key>PayloadDisplayName</key>'+plistString('Stark Sign — получение UDID')
+    + '<key>PayloadOrganization</key>'+plistString('Stark Sign')
+    + '<key>PayloadIdentifier</key>'+plistString('com.starksign.udid.profile-service')
+    + '<key>PayloadUUID</key>'+plistString(crypto.randomUUID())
+    + '<key>PayloadVersion</key><integer>1</integer>'
+    + '<key>PayloadType</key>'+plistString('Profile Service')
+    + '</dict></plist>';
 }
 function signedProfile(xml, outFile) {
   const inFile = path.join(ENROLL_DIR, crypto.randomUUID()+'.plist');
