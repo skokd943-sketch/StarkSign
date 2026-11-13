@@ -145,6 +145,7 @@ nav button.on{color:var(--sky)} nav button.on svg{transform:translateY(-2px) sca
 <section class="view" id="v3">
   <h1>Настройки</h1>
   <div class="form">
+    <div class="hint" id="serverStatus">Проверяю постоянный сервер…</div>
     <label>Адрес сервера<input id="srv" placeholder="https://название.up.railway.app" autocapitalize="off" autocorrect="off"></label>
     <label>Ключ доступа (если задан на сервере)<input id="key" type="password" autocomplete="off"></label>
   </div>
@@ -185,6 +186,49 @@ btns.forEach(b=>b.onclick=()=>go(+b.dataset.i));
 document.querySelectorAll('.sw').forEach(s=>s.onclick=()=>s.classList.toggle('on'));
 
 const $=q=>document.querySelector(q);
+// Постоянный адрес Railway API. Проверяем сервер при запуске и возвращении в приложение.
+const DEFAULT_SERVER='https://stark-sign-server-production.up.railway.app';
+if(!localStorage.srv) localStorage.srv=DEFAULT_SERVER;
+function normalizeServer(value){
+  const u=new URL(String(value||'').trim());
+  if(!['https:','http:'].includes(u.protocol)||u.username||u.password) throw new Error('Нужен корректный HTTPS-адрес сервера');
+  if(u.protocol!=='https:'&&!['localhost','127.0.0.1'].includes(u.hostname)) throw new Error('Сервер должен использовать HTTPS');
+  return u.origin;
+}
+let serverCheckPromise=null,lastServerCheck=0;
+async function detectServer(force=false){
+  if(serverCheckPromise)return serverCheckPromise;
+  if(!force&&Date.now()-lastServerCheck<20000)return localStorage.srv||DEFAULT_SERVER;
+  serverCheckPromise=(async()=>{
+    const saved=localStorage.srv||DEFAULT_SERVER;
+    const candidates=[saved,DEFAULT_SERVER,location.origin].filter((v,i,a)=>v&&a.indexOf(v)===i);
+    const status=$('#serverStatus');
+    if(status)status.textContent='Автоматически ищу рабочий сервер…';
+    for(const candidate of candidates){
+      let base;
+      try{base=normalizeServer(candidate)}catch(_){continue}
+      try{
+        const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),5000);
+        let response;
+        try{response=await fetch(base+'/api/health',{method:'GET',cache:'no-store',headers:{'Accept':'application/json'},signal:controller.signal})}
+        finally{clearTimeout(timer)}
+        const data=await response.json();
+        if(response.ok&&data&&data.ok===true&&data.service==='stark-sign'){
+          localStorage.srv=base;
+          if($('#srv'))$('#srv').value=base;
+          if(status)status.textContent='Сервер подключён: '+new URL(base).host;
+          lastServerCheck=Date.now();
+          return base;
+        }
+      }catch(_){}
+    }
+    lastServerCheck=Date.now();
+    if(status)status.textContent='Сервер не отвечает. Повторю проверку автоматически.';
+    return localStorage.srv||DEFAULT_SERVER;
+  })();
+  try{return await serverCheckPromise}finally{serverCheckPromise=null}
+}
+const getServer=()=>normalizeServer(localStorage.srv||DEFAULT_SERVER);
 // запрет зума двумя пальцами и двойным тапом
 ['gesturestart','gesturechange','gestureend'].forEach(t=>document.addEventListener(t,e=>e.preventDefault()));
 document.addEventListener('touchmove',e=>{if(e.touches.length>1)e.preventDefault()},{passive:false});
@@ -252,7 +296,7 @@ async function watchAppleJob(id,srv){
 }
 $('#login').onclick=async()=>{
   const f=$('#ipa').files[0],appleId=$('#aid').value.trim(),password=$('#apw').value;
-  const srv=(localStorage.srv||location.origin).replace(/\/+$/,'');
+  const srv=getServer();
   const udid=localStorage.udidValue||'';
   if(!f)return toast('Сначала выбери IPA во вкладке «Приложения»');
   if(!udid)return toast('Сначала получи UDID автоматически');
@@ -287,7 +331,7 @@ $('#getudid').onclick=async()=>{
   let srv, startUrl;
   try{
     b.disabled=true;b.textContent='Создаю профиль…';out.textContent='Проверяю адрес сервера…';
-    const raw=(localStorage.srv||location.origin).trim().replace(/\/+$/,'');
+    const raw=getServer();
     let base;
     try{base=new URL(raw)}catch(_){throw Error('Неверный адрес сервера. Укажи полный адрес, начиная с https://')}
     if(!['https:','http:'].includes(base.protocol)||base.username||base.password)throw Error('Адрес сервера должен начинаться с https://');
@@ -330,12 +374,12 @@ setInterval(()=>{if(!document.hidden&&$('#v2').classList.contains('on'))loadRepo
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&$('#v2').classList.contains('on'))loadRepo()});
 const allCerts=()=>[...repoCerts,...mineCerts];
 function refreshSel(){const s=$('#certsel'),v=s.value;s.innerHTML=allCerts().map((c,i)=>`<option value="${i}">${esc(c.label)}</option>`).join('')||'<option value="">Нет сертификатов</option>';if(v)s.value=v}
-const srvIn=$('#srv'),keyIn=$('#key');srvIn.value=localStorage.srv||'';keyIn.value=localStorage.key||'';
+const srvIn=$('#srv'),keyIn=$('#key');srvIn.value=localStorage.srv||DEFAULT_SERVER;keyIn.value=localStorage.key||'';
 srvIn.oninput=()=>localStorage.srv=srvIn.value.trim().replace(/\/+$/,'');keyIn.oninput=()=>localStorage.key=keyIn.value;
 const hist=()=>{try{return JSON.parse(localStorage.signed||'[]')}catch(e){return[]}};
 function showSigned(){$('#signed').innerHTML=hist().map(h=>`<div class="cert"><div class="ico">IPA</div><div><b>${esc(h.name)}</b><small>${esc(h.ver)} · ${esc(h.date)}</small></div><div><a class="mini" href="itms-services://?action=download-manifest&url=${h.srv}/api/manifest/${h.id}.plist">Установить</a><a class="mini" href="${h.srv}/api/ipa/${h.id}.ipa">IPA</a></div></div>`).join('')||'<p class="hint">Подписанных приложений пока нет. Файлы на сервере хранятся 24 часа.</p>'}
 $('#sign').onclick=async()=>{
-  const srv=localStorage.srv;if(!srv)return toast('Укажи адрес сервера в настройках');
+  const srv=getServer();
   const f=$('#ipa').files[0];if(!f)return toast('Выбери файл .ipa');
   const c=allCerts()[$('#certsel').value];if(!c)return toast('Выбери сертификат');
   const btn=$('#sign'),bar=$('#bar'),fill=bar.firstElementChild;
@@ -358,6 +402,9 @@ $('#sign').onclick=async()=>{
 };
 showSigned();
 loadMine();loadRepo();
+detectServer(true);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)detectServer(true)});
+window.addEventListener('pageshow',()=>detectServer(true));
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
 </body>
