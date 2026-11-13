@@ -1,4 +1,4 @@
-const CACHE_NAME = 'stark-sign-v10';
+const CACHE_NAME = 'stark-sign-v11';
 const APP_SHELL = ['./', './index.html', './manifest.json', './icon-180.png', './icon-512.png'];
 
 self.addEventListener('install', event => {
