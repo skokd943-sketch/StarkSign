@@ -226,7 +226,8 @@ app.post('/api/udid/response/:token', express.raw({type:()=>true,limit:'256kb'})
     const challengeValue=challengeKey ? attrs[challengeKey] : '';
     const challenge=Buffer.isBuffer(challengeValue) ? challengeValue.toString('utf8') : String(challengeValue);
     const got=Buffer.from(challenge,'utf8'), expected=Buffer.from(session.challenge,'utf8');
-    const udidOk=/^[A-F0-9]{40}$/.test(udid);
+    // Apple UDIDs: legacy 40 hex chars, or modern 8-4-16 form (25 chars incl. hyphen).
+    const udidOk=/^(?:[A-F0-9]{40}|[A-F0-9]{8}-[A-F0-9]{16})$/.test(udid);
     const challengeOk=got.length===expected.length && crypto.timingSafeEqual(got,expected);
     // Safe diagnostics: never print the UDID, challenge, or full token.
     console.info('[UDID][response-check]',JSON.stringify({
@@ -281,7 +282,7 @@ function requireAppleHttps(req,res,next) {
   next();
 }
 function knownUdid(value) {
-  if (!/^[A-Fa-f0-9]{40}$/.test(String(value || ''))) return false;
+  if (!/^(?:[A-Fa-f0-9]{40}|[A-Fa-f0-9]{8}-[A-Fa-f0-9]{16})$/.test(String(value || ''))) return false;
   try {
     const rows = JSON.parse(fs.readFileSync(path.join(ROOT,'udids.json'),'utf8'));
     return Array.isArray(rows) && rows.some(x => String(x.udid).toUpperCase() === String(value).toUpperCase());
