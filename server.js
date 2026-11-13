@@ -215,6 +215,8 @@ app.post('/api/udid/response/:token', express.raw({type:()=>true,limit:'256kb'})
     verifyStage='check Apple device certificate';
     const issuer=execFileSync('openssl',['x509','-in',signer,'-noout','-issuer','-nameopt','RFC2253'],{encoding:'utf8'}).trim();
     if (!issuer.includes('CN=Apple iPhone Device CA')) throw new Error('Signer is not an Apple iPhone device certificate');
+    verifyStage='verify Apple device certificate chain';
+    execFileSync('openssl',['verify','-CAfile',APPLE_DEVICE_CA,'-partial_chain','-no_check_time','-purpose','any',signer],{stdio:'pipe',timeout:15000});
     verifyStage='parse device response';
     const attrs=plist.parse(fs.readFileSync(decoded,'utf8'));
     const udid=String(attrs.UDID||attrs.Udid||'').toUpperCase();
