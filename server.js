@@ -29,6 +29,7 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 const okId = id => /^[a-f0-9]{16}$/.test(id);
 
 app.get('/', (q, r) => r.send('Stark Sign server OK'));
+app.get('/api/health', (req,res) => res.set('Cache-Control','no-store').json({ok:true,service:'stark-sign',version:'2026.11.13'}));
 
 app.post('/api/sign',
   (req, res, next) => (KEY && req.get('x-key') !== KEY) ? res.status(401).json({ error: 'Неверный ключ доступа' }) : next(),
