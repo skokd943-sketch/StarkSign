@@ -219,16 +219,24 @@ app.post('/api/udid/response/:token', express.raw({type:()=>true,limit:'256kb'})
     execFileSync('openssl',['verify','-CAfile',APPLE_DEVICE_CA,'-partial_chain','-no_check_time','-purpose','any',signer],{stdio:'pipe',timeout:15000});
     verifyStage='parse device response';
     const attrs=plist.parse(fs.readFileSync(decoded,'utf8'));
-    const udid=String(attrs.UDID||attrs.Udid||'').toUpperCase();
-    const challengeKey=Object.keys(attrs).find(k=>k.toUpperCase()==='CHALLENGE');
-    const challenge=String(challengeKey?attrs[challengeKey]:'');
-    const got=Buffer.from(challenge), expected=Buffer.from(session.challenge);
-    if (process.env.RECON === '1') {
-      console.log('[UDID][diag] keys from device:', Object.keys(attrs).join(','));
-      console.log('[UDID][diag] udid:', udid, 'len:', udid.length, 'regexOk:', /^[A-F0-9]{40}$/.test(udid));
-      console.log('[UDID][diag] challenge got len:', got.length, 'expected len:', expected.length, 'equal:', got.length===expected.length && crypto.timingSafeEqual(got,expected));
-    }
-    if (!/^[A-F0-9]{40}$/.test(udid) || got.length!==expected.length || !crypto.timingSafeEqual(got,expected)) throw new Error('Invalid UDID or challenge');
+    const attrKeys=Object.keys(attrs);
+    const udidKey=attrKeys.find(k=>k.toUpperCase()==='UDID');
+    const challengeKey=attrKeys.find(k=>k.toUpperCase()==='CHALLENGE');
+    const udid=String(udidKey ? attrs[udidKey] : '').trim().toUpperCase();
+    const challengeValue=challengeKey ? attrs[challengeKey] : '';
+    const challenge=Buffer.isBuffer(challengeValue) ? challengeValue.toString('utf8') : String(challengeValue);
+    const got=Buffer.from(challenge,'utf8'), expected=Buffer.from(session.challenge,'utf8');
+    const udidOk=/^[A-F0-9]{40}$/.test(udid);
+    const challengeOk=got.length===expected.length && crypto.timingSafeEqual(got,expected);
+    // Safe diagnostics: never print the UDID, challenge, or full token.
+    console.info('[UDID][response-check]',JSON.stringify({
+      keys:attrKeys,udidFieldFound:!!udidKey,udidLength:udid.length,udidFormatOk:udidOk,
+      challengeFieldFound:!!challengeKey,challengeType:Buffer.isBuffer(challengeValue)?'Buffer':typeof challengeValue,
+      challengeLength:got.length,expectedChallengeLength:expected.length,challengeMatches:challengeOk
+    }));
+    if (!udidOk) throw new Error('Invalid or missing UDID in Apple device response');
+    if (!challengeOk) throw new Error('Apple device response Challenge does not match enrollment');
+
     verifyStage='save verified UDID';
     session.used=true; session.udid=udid; session.completed=Date.now();
     const store=path.join(ROOT,'udids.json'); let rows=[];
