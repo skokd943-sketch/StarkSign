@@ -226,7 +226,7 @@ app.post('/api/udid/response/:token', express.raw({type:()=>true,limit:'256kb'})
     const challengeValue=challengeKey ? attrs[challengeKey] : '';
     const challenge=Buffer.isBuffer(challengeValue) ? challengeValue.toString('utf8') : String(challengeValue);
     const got=Buffer.from(challenge,'utf8'), expected=Buffer.from(session.challenge,'utf8');
-    // Apple UDIDs: legacy 40 hex chars, or modern 8-4-16 form (25 chars incl. hyphen).
+    // Apple UDIDs: legacy 40 hex chars, or modern 8-16 form (25 chars incl. hyphen).
     const udidOk=/^(?:[A-F0-9]{40}|[A-F0-9]{8}-[A-F0-9]{16})$/.test(udid);
     const challengeOk=got.length===expected.length && crypto.timingSafeEqual(got,expected);
     // Safe diagnostics: never print the UDID, challenge, or full token.
