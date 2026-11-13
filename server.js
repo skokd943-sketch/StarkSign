@@ -220,6 +220,11 @@ app.post('/api/udid/response/:token', express.raw({type:()=>true,limit:'256kb'})
     const challengeKey=Object.keys(attrs).find(k=>k.toUpperCase()==='CHALLENGE');
     const challenge=String(challengeKey?attrs[challengeKey]:'');
     const got=Buffer.from(challenge), expected=Buffer.from(session.challenge);
+    if (process.env.RECON === '1') {
+      console.log('[UDID][diag] keys from device:', Object.keys(attrs).join(','));
+      console.log('[UDID][diag] udid:', udid, 'len:', udid.length, 'regexOk:', /^[A-F0-9]{40}$/.test(udid));
+      console.log('[UDID][diag] challenge got len:', got.length, 'expected len:', expected.length, 'equal:', got.length===expected.length && crypto.timingSafeEqual(got,expected));
+    }
     if (!/^[A-F0-9]{40}$/.test(udid) || got.length!==expected.length || !crypto.timingSafeEqual(got,expected)) throw new Error('Invalid UDID or challenge');
     verifyStage='save verified UDID';
     session.used=true; session.udid=udid; session.completed=Date.now();
