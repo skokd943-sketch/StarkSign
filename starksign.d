@@ -139,9 +139,16 @@ struct StarkSignCommand {
     }
 }
 
+private bool isHexChar(dchar c) {
+ return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
+}
 private bool isValidUdid(string value) {
- bool hex(char c) { return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'); }
- if (value.length == 40) return value.all!(c => hex(c));
- if (value.length == 25 && value[8] == '-') return value[0 .. 8].all!(c => hex(c)) && value[9 .. 25].all!(c => hex(c));
+ bool allHex(string s) {
+ foreach (ch; s) if (!isHexChar(ch)) return false;
+ return true;
+ }
+ // Legacy: 40 hex chars. Modern: 8 hex + '-' + 16 hex.
+ if (value.length == 40) return allHex(value);
+ if (value.length == 25 && value[8] == '-') return allHex(value[0 .. 8]) && allHex(value[9 .. 25]);
  return false;
 }
