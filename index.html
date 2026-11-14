@@ -189,6 +189,7 @@ const $=q=>document.querySelector(q);
 // Постоянный адрес Railway API. Проверяем сервер при запуске и возвращении в приложение.
 const DEFAULT_SERVER='https://stark-sign-server-production.up.railway.app';
 if(!localStorage.srv) localStorage.srv=DEFAULT_SERVER;
+const getKey=()=>localStorage.getItem('accessKey')||localStorage.getItem('key')||'';
 function normalizeServer(value){
   const u=new URL(String(value||'').trim());
   if(!['https:','http:'].includes(u.protocol)||u.username||u.password) throw new Error('Нужен корректный HTTPS-адрес сервера');
@@ -278,7 +279,7 @@ async function watchAppleJob(id,srv){
   const status=$('#appleStatus'),codeWrap=$('#appleCodeWrap'),codeBtn=$('#submitAppleCode');
   const check=async()=>{
     try{
-      const headers={};if(localStorage.key)headers['x-key']=localStorage.key;
+      const headers={};if(getKey())headers['x-key']=getKey();
       const r=await fetch(srv+'/api/apple/status/'+id,{headers}),j=await r.json();
       status.textContent=j.message||j.error||'Обработка…';
       if(j.status==='awaiting_code'){codeWrap.style.display='grid';codeBtn.style.display='block';}
@@ -305,7 +306,7 @@ $('#login').onclick=async()=>{
   try{
     btn.disabled=true;btn.textContent='Подключаюсь к Apple…';status.textContent='Запускаю защищённую сессию…';
     const fd=new FormData();fd.append('ipa',f);fd.append('appleId',appleId);fd.append('password',password);fd.append('udid',udid);
-    const headers={};if(localStorage.key)headers['x-key']=localStorage.key;
+    const headers={};if(getKey())headers['x-key']=getKey();
     const r=await fetch(srv+'/api/apple/start',{method:'POST',headers,body:fd}),j=await r.json();
     if(!r.ok)throw Error(j.error||'Ошибка сервера');
     $('#apw').value='';localStorage.appleJob=j.id;localStorage.appleServer=srv;
@@ -316,7 +317,7 @@ $('#login').onclick=async()=>{
 $('#submitAppleCode').onclick=async()=>{
   const id=localStorage.appleJob,srv=localStorage.appleServer,code=$('#appleCode').value.trim();
   if(!id||!code)return toast('Введи код Apple');
-  const headers={'Content-Type':'application/json'};if(localStorage.key)headers['x-key']=localStorage.key;
+  const headers={'Content-Type':'application/json'};if(getKey())headers['x-key']=getKey();
   try{
     const r=await fetch(srv+'/api/apple/code/'+id,{method:'POST',headers,body:JSON.stringify({code})}),j=await r.json();
     if(!r.ok)throw Error(j.error||'Код не принят');
@@ -374,8 +375,8 @@ setInterval(()=>{if(!document.hidden&&$('#v2').classList.contains('on'))loadRepo
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&$('#v2').classList.contains('on'))loadRepo()});
 const allCerts=()=>[...repoCerts,...mineCerts];
 function refreshSel(){const s=$('#certsel'),v=s.value;s.innerHTML=allCerts().map((c,i)=>`<option value="${i}">${esc(c.label)}</option>`).join('')||'<option value="">Нет сертификатов</option>';if(v)s.value=v}
-const srvIn=$('#srv'),keyIn=$('#key');srvIn.value=localStorage.srv||DEFAULT_SERVER;keyIn.value=localStorage.key||'';
-srvIn.oninput=()=>localStorage.srv=srvIn.value.trim().replace(/\/+$/,'');keyIn.oninput=()=>localStorage.key=keyIn.value;
+const srvIn=$('#srv'),keyIn=$('#key');srvIn.value=localStorage.srv||DEFAULT_SERVER;keyIn.value=getKey();
+srvIn.oninput=()=>localStorage.srv=srvIn.value.trim().replace(/\/+$/,'');keyIn.oninput=()=>localStorage.setItem('accessKey',keyIn.value.trim());
 const hist=()=>{try{return JSON.parse(localStorage.signed||'[]')}catch(e){return[]}};
 function showSigned(){$('#signed').innerHTML=hist().map(h=>`<div class="cert"><div class="ico">IPA</div><div><b>${esc(h.name)}</b><small>${esc(h.ver)} · ${esc(h.date)}</small></div><div><a class="mini" href="itms-services://?action=download-manifest&url=${h.srv}/api/manifest/${h.id}.plist">Установить</a><a class="mini" href="${h.srv}/api/ipa/${h.id}.ipa">IPA</a></div></div>`).join('')||'<p class="hint">Подписанных приложений пока нет. Файлы на сервере хранятся 24 часа.</p>'}
 $('#sign').onclick=async()=>{
@@ -390,7 +391,7 @@ $('#sign').onclick=async()=>{
     if(!prov)throw Error('К сертификату нужен файл .mobileprovision');
     const fd=new FormData();fd.append('ipa',f);fd.append('p12',p12,'c.p12');fd.append('prov',prov,'p.mobileprovision');fd.append('pass',c.pass||'');
     bar.style.display='block';
-    const d=await new Promise((ok,no)=>{const x=new XMLHttpRequest();x.open('POST',srv+'/api/sign');if(localStorage.key)x.setRequestHeader('x-key',localStorage.key);
+    const d=await new Promise((ok,no)=>{const x=new XMLHttpRequest();x.open('POST',srv+'/api/sign');if(getKey())x.setRequestHeader('x-key',getKey());
       x.upload.onprogress=e=>{if(e.lengthComputable){fill.style.width=(e.loaded/e.total*100)+'%';btn.textContent='Загрузка '+Math.round(e.loaded/e.total*100)+'%'}};
       x.upload.onload=()=>btn.textContent='Подписываю…';
       x.onload=()=>{let j={};try{j=JSON.parse(x.responseText)}catch(e){}x.status===200?ok(j):no(Error(j.error||'Ошибка сервера '+x.status))};
