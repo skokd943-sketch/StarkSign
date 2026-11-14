@@ -31,6 +31,71 @@ const okId = id => /^[a-f0-9]{16}$/.test(id);
 app.get('/', (q, r) => r.send('Stark Sign server OK'));
 app.get('/api/health', (req,res) => res.set('Cache-Control','no-store').json({ok:true,service:'stark-sign',version:'2026.11.13'}));
 
+// Public IPA catalog: files committed to the repository's /apps directory.
+// Metadata and icons are read directly from each IPA; no manual JSON is needed.
+const CATALOG_DIR = path.join(__dirname, 'apps');
+function catalogEntries() {
+  let files = [];
+  try { files = fs.readdirSync(CATALOG_DIR).filter(n => n.toLowerCase().endsWith('.ipa')); } catch (_) {}
+  return files.map(file => {
+    try {
+      const full = path.join(CATALOG_DIR, file);
+      const zip = new AdmZip(full);
+      const infoEntry = zip.getEntries().find(x => /^Payload\/[^/]+\.app\/Info\.plist$/.test(x.entryName));
+      if (!infoEntry) return null;
+      const info = plist.parse(infoEntry.getData());
+      const appPath = infoEntry.entryName.replace(/Info\.plist$/, '');
+      const iconNames = [].concat(info.CFBundleIcons?.CFBundlePrimaryIcon?.CFBundleIconFiles || [], info.CFBundleIconFiles || []);
+      let iconEntry = null;
+      for (const name of iconNames.reverse()) {
+        iconEntry = zip.getEntry(appPath + name + '.png') || zip.getEntry(appPath + name);
+        if (iconEntry) break;
+      }
+      if (!iconEntry) iconEntry = zip.getEntries().find(x => x.entryName.startsWith(appPath) && /AppIcon.*\.png$/i.test(x.entryName));
+      const id = crypto.createHash('sha256').update(file).digest('hex').slice(0, 16);
+      return { id, file, name: info.CFBundleDisplayName || info.CFBundleName || path.basename(file, '.ipa'), bundle: info.CFBundleIdentifier || '', version: info.CFBundleShortVersionString || info.CFBundleVersion || '1.0', icon: !!iconEntry };
+    } catch (e) {
+      console.warn('[apps] Invalid IPA:', file, e.message);
+      return null;
+    }
+  }).filter(Boolean);
+}
+function findCatalogApp(id) { return catalogEntries().find(x => x.id === id); }
+app.get('/api/apps', (req, res) => {
+  res.set('Cache-Control', 'no-store').json(catalogEntries().map(({id,name,bundle,version,icon}) => ({id,name,bundle,version,iconUrl:icon ? '/api/apps/'+id+'/icon.png' : null,installUrl:'/api/apps/'+id+'/manifest.plist'})));
+});
+app.get('/api/apps/:id/icon.png', (req, res) => {
+  const appInfo = findCatalogApp(req.params.id);
+  if (!appInfo) return res.sendStatus(404);
+  try {
+    const zip = new AdmZip(path.join(CATALOG_DIR, appInfo.file));
+    const infoEntry = zip.getEntries().find(x => /^Payload\/[^/]+\.app\/Info\.plist$/.test(x.entryName));
+    const info = plist.parse(infoEntry.getData());
+    const appPath = infoEntry.entryName.replace(/Info\.plist$/, '');
+    const names = [].concat(info.CFBundleIcons?.CFBundlePrimaryIcon?.CFBundleIconFiles || [], info.CFBundleIconFiles || []).reverse();
+    let icon = null;
+    for (const name of names) { icon = zip.getEntry(appPath + name + '.png') || zip.getEntry(appPath + name); if (icon) break; }
+    if (!icon) icon = zip.getEntries().find(x => x.entryName.startsWith(appPath) && /AppIcon.*\.png$/i.test(x.entryName));
+    if (!icon) return res.sendStatus(404);
+    res.set({'Content-Type':'image/png','Cache-Control':'public, max-age=3600'}).send(icon.getData());
+  } catch (_) { res.sendStatus(404); }
+});
+app.get('/api/apps/:id/manifest.plist', (req, res) => {
+  const m = findCatalogApp(req.params.id);
+  if (!m) return res.sendStatus(404);
+  const base = (process.env.PUBLIC_URL || ('https://' + req.get('host'))).replace(/\\/+$/, '');
+  const ipaUrl = base + '/api/apps/' + m.id + '/download.ipa';
+  res.set('Cache-Control','no-store').type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict><key>items</key><array><dict><key>assets</key><array><dict><key>kind</key><string>software-package</string><key>url</key><string>${esc(ipaUrl)}</string></dict></array><key>metadata</key><dict><key>bundle-identifier</key><string>${esc(m.bundle)}</string><key>bundle-version</key><string>${esc(m.version)}</string><key>kind</key><string>software</string><key>title</key><string>${esc(m.name)}</string></dict></dict></array></dict></plist>`);
+});
+app.get('/api/apps/:id/download.ipa', (req, res) => {
+  const m = findCatalogApp(req.params.id);
+  if (!m) return res.sendStatus(404);
+  res.set('Cache-Control','public, max-age=3600').type('application/octet-stream').sendFile(path.join(CATALOG_DIR, m.file));
+});
+
+
 app.post('/api/sign',
   (req, res, next) => (KEY && req.get('x-key') !== KEY) ? res.status(401).json({ error: 'Неверный ключ доступа' }) : next(),
   up.fields([{ name: 'ipa', maxCount: 1 }, { name: 'p12', maxCount: 1 }, { name: 'prov', maxCount: 1 }]),
