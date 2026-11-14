@@ -1,11 +1,19 @@
 --- a/source/sideload/certificateidentity.d
 +++ b/source/sideload/certificateidentity.d
-@@
+@@ -57,7 +57,9 @@
+
+             log.debug_("Checking if any certificate online is matching the private key...");
+             auto certificates = appleAccount.listAllDevelopmentCerts!iOS(team).unwrap();
 -            auto sideloaderCertificates = certificates.find!((cert) => cert.machineName == applicationName);
 +            // The machine name is not a reliable identity: reuse any certificate
 +            // whose public key matches the private key persisted by Stark Sign.
 +            auto sideloaderCertificates = certificates;
-@@
+             if (sideloaderCertificates.length != 0) {
+                 Vector!ubyte certContent;
+                 Vector!ubyte ourPublicKey = privateKey.x509SubjectPublicKey();
+@@ -73,6 +75,13 @@
+                 }
+             }
          } else {
 +            // Do not submit a second CSR when another client (for example
 +            // AltStore) already owns the account's development certificate.
@@ -15,3 +23,5 @@
 +                "An iOS Development certificate already exists for this Apple ID, but Stark Sign does not have its private key. Export the existing certificate as a .p12 from AltStore and import it in Stark Sign, or revoke it before creating a new certificate.");
 +
              log.debug_("Generating a new RSA key");
+             privateKey = RSAPrivateKey(rng, 2048);
+
