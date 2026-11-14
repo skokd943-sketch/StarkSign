@@ -2,15 +2,6 @@ const express = require('express'), multer = require('multer'), fs = require('fs
 const { execFile } = require('child_process'), crypto = require('crypto');
 const AdmZip = require('adm-zip'), plist = require('simple-plist');
 const pty = require('node-pty');
-const { Pool } = require('pg');
-const db = process.env.DATABASE_URL ? new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false }, max: 5 }) : null;
-const dbReady = db ? db.query('CREATE TABLE IF NOT EXISTS stark_users (id BIGSERIAL PRIMARY KEY, nickname VARCHAR(32) NOT NULL UNIQUE, password_hash TEXT NOT NULL, udid VARCHAR(64), created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())').then(()=>db.query('CREATE UNIQUE INDEX IF NOT EXISTS stark_users_nickname_ci ON stark_users (lower(nickname))')).then(()=>db.query('CREATE TABLE IF NOT EXISTS stark_sessions (token_hash CHAR(64) PRIMARY KEY, user_id BIGINT NOT NULL REFERENCES stark_users(id) ON DELETE CASCADE, expires_at TIMESTAMPTZ NOT NULL)')).then(()=>console.log('[accounts] PostgreSQL ready')).catch(e=>{console.error('[accounts] PostgreSQL init failed:',e.message); return false;}) : Promise.resolve(false);
-const hashToken = value => crypto.createHash('sha256').update(value).digest('hex');
-const hashPassword = (password, salt=crypto.randomBytes(16).toString('hex')) => ({salt,hash:crypto.scryptSync(password,salt,64).toString('hex')});
-const passwordMatches = (password, stored) => { try { const p=JSON.parse(stored), got=crypto.scryptSync(password,p.salt,64), expected=Buffer.from(p.hash,'hex'); return got.length===expected.length && crypto.timingSafeEqual(got,expected); } catch (_) { return false; } };
-async function requireAccount(req,res,next) { try { if(!db) return res.status(503).json({error:'Для аккаунтов подключи PostgreSQL в Railway и задай DATABASE_URL'}); if(!(await dbReady)) return res.status(503).json({error:'База аккаунтов недоступна. Проверь DATABASE_URL в Railway'}); const raw=String(req.get('authorization')||'').replace(/^Bearer\s+/i,''); if(!raw) return res.status(401).json({error:'Войди в аккаунт Stark Sign'}); const q=await db.query('SELECT u.id,u.nickname,u.udid FROM stark_sessions s JOIN stark_users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.expires_at>NOW()',[hashToken(raw)]); if(!q.rowCount) return res.status(401).json({error:'Сессия истекла. Войди снова.'}); req.account=q.rows[0]; next(); } catch(e) { console.error('[accounts] auth error:',e.message); res.status(503).json({error:'База аккаунтов временно недоступна'}); } }
-function accountToken(){return crypto.randomBytes(32).toString('hex');}
-async function createAccountSession(userId){const token=accountToken();await db.query('INSERT INTO stark_sessions(token_hash,user_id,expires_at) VALUES($1,$2,NOW()+INTERVAL \'30 days\')',[hashToken(token),userId]);return token;}
 
 // Railway без Volume: используем только временное хранилище контейнера.
 // DATA_DIR можно переопределить, но для текущего деплоя оставляем /tmp/stark.
@@ -27,7 +18,7 @@ app.set('trust proxy', 1);
 app.use(express.json({limit:'32kb'}));
 app.use((req, res, next) => {
   res.set('Access-Control-Allow-Origin', ORIGIN);
-  res.set('Access-Control-Allow-Headers', 'x-key, content-type, cache-control, authorization');
+  res.set('Access-Control-Allow-Headers', 'x-key, content-type, cache-control');
   res.set('Access-Control-Max-Age', '600');
   res.set('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
   if (req.method === 'OPTIONS') return res.end();
@@ -38,10 +29,6 @@ const up = multer({ dest: UPLOADS, limits: { fileSize: 600 * 1024 * 1024 } });
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const okId = id => /^[a-f0-9]{16}$/.test(id);
 
-app.post('/api/account/register', async (req,res)=>{ try { if(!db)return res.status(503).json({error:'Аккаунты требуют PostgreSQL: добавь DATABASE_URL в Railway Variables'}); if(!(await dbReady)) return res.status(503).json({error:'База аккаунтов недоступна. Проверь DATABASE_URL в Railway'}); const nickname=String(req.body.nickname||'').trim(); const password=String(req.body.password||''); if(!/^[\p{L}\p{N}_-]{3,24}$/u.test(nickname))return res.status(400).json({error:'Ник: 3–24 символа, буквы, цифры, _ или -'}); if(password.length<8||password.length>128)return res.status(400).json({error:'Пароль должен содержать от 8 до 128 символов'}); const p=hashPassword(password); const q=await db.query('INSERT INTO stark_users(nickname,password_hash) VALUES($1,$2) RETURNING id,nickname,udid',[nickname,JSON.stringify(p)]); const token=await createAccountSession(q.rows[0].id); res.status(201).json({token,user:q.rows[0]}); } catch(e){ if(e.code==='23505')return res.status(409).json({error:'Этот ник уже занят'}); console.error('[accounts] register:',e.message); res.status(500).json({error:'Не удалось создать аккаунт'}); } });
-app.post('/api/account/login', async (req,res)=>{ try { if(!db)return res.status(503).json({error:'Аккаунты требуют PostgreSQL: добавь DATABASE_URL в Railway Variables'}); await dbReady; const nickname=String(req.body.nickname||'').trim(); const password=String(req.body.password||''); const q=await db.query('SELECT id,nickname,password_hash,udid FROM stark_users WHERE lower(nickname)=lower($1)',[nickname]); if(!q.rowCount||!passwordMatches(password,q.rows[0].password_hash))return res.status(401).json({error:'Неверный ник или пароль'}); const token=await createAccountSession(q.rows[0].id); const {password_hash,...user}=q.rows[0]; res.json({token,user}); } catch(e){console.error('[accounts] login:',e.message);res.status(503).json({error:'База аккаунтов временно недоступна'});} });
-app.get('/api/account/me',requireAccount,(req,res)=>res.json({user:req.account}));
-app.post('/api/account/logout',requireAccount,async(req,res)=>{await db.query('DELETE FROM stark_sessions WHERE token_hash=$1',[hashToken(String(req.get('authorization')||'').replace(/^Bearer\s+/i,''))]);res.json({ok:true});});
 app.get('/', (q, r) => r.send('Stark Sign server OK'));
 app.get('/api/health', (req,res) => res.set('Cache-Control','no-store').json({ok:true,service:'stark-sign',version:'2026.11.13'}));
 
@@ -246,13 +233,13 @@ function signedProfile(xml, outFile) {
     execFileSync('openssl', ['cms','-sign','-binary','-in',inFile,'-signer',SIGN_CERT,'-inkey',SIGN_KEY,'-outform','DER','-out',outFile,'-nodetach'], {stdio:'pipe'});
   } finally { fs.rmSync(inFile,{force:true}); }
 }
-app.post('/api/udid/start', requireAccount, (req,res) => {
+app.post('/api/udid/start', (req,res) => {
   const ip = String(req.ip || req.socket.remoteAddress || 'unknown');
   const now = Date.now();
 
   // Reuse an active request from this device/IP instead of consuming another rate-limit slot.
   for (const [existingToken, existing] of enrollments) {
-    if (String(existing.userId) === String(req.account.id) && existing.clientIp === ip && !existing.used && now-existing.created < 20*60*1000) {
+    if (existing.clientIp === ip && !existing.used && now-existing.created < 20*60*1000) {
       const base = (process.env.PUBLIC_URL || ('https://' + req.get('host'))).replace(/\/+$/,'');
       return res.json({url:base+'/enroll/'+existingToken+'.mobileconfig',token:existingToken,expiresIn:Math.max(0,Math.floor((20*60*1000-(now-existing.created))/1000)),reused:true});
     }
@@ -262,7 +249,7 @@ app.post('/api/udid/start', requireAccount, (req,res) => {
   if (recent.length >= 10) return res.status(429).json({error:'Лимит новых запросов UDID: 10 в час. Уже созданный запрос можно использовать повторно.'});
   recent.push(now); enrollRate.set(ip,recent);
   const token = crypto.randomBytes(32).toString('hex');
-  enrollments.set(token,{challenge:crypto.randomBytes(32).toString('hex'),created:now,used:false,udid:null,clientIp:ip,userId:req.account.id});
+  enrollments.set(token,{challenge:crypto.randomBytes(32).toString('hex'),created:now,used:false,udid:null,clientIp:ip});
   const base = (process.env.PUBLIC_URL || ('https://' + req.get('host'))).replace(/\/+$/,'');
   const url = base+'/enroll/'+token+'.mobileconfig';
   console.info('[UDID] enrollment created/reused; ip:',ip,'token:',token.slice(0,8));
@@ -320,7 +307,6 @@ app.post('/api/udid/response/:token', express.raw({type:()=>true,limit:'256kb'})
     verifyStage='save verified UDID';
     const base=(process.env.PUBLIC_URL || ('https://' + req.get('host'))).replace(/\/+$/,'');
     session.used=true; session.udid=udid; session.completed=Date.now();
-    await db.query('UPDATE stark_users SET udid=$1 WHERE id=$2',[udid,session.userId]);
     const store=path.join(ROOT,'udids.json'); let rows=[];
     try { rows=JSON.parse(fs.readFileSync(store,'utf8')); if(!Array.isArray(rows)) rows=[]; } catch(_){}
     rows=rows.filter(x=>x.token!==token); rows.push({token,udid,created:new Date().toISOString()});
@@ -332,11 +318,11 @@ app.post('/api/udid/response/:token', express.raw({type:()=>true,limit:'256kb'})
   } finally { for(const f of [cms,decoded,signer]) fs.rmSync(f,{force:true}); }
 });
 app.get('/enroll/done', (req,res) => res.set('Cache-Control','no-store').type('html').send('<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><body style="font-family:-apple-system,sans-serif;background:#0b0b10;color:#fff;text-align:center;padding:60px 20px"><h2>UDID получен ✅</h2><p>Вернись в Stark Sign — устройство уже подтверждено.</p>'));
-app.get('/api/udid/status/:token', requireAccount, async (req,res) => {
+app.get('/api/udid/status/:token', (req,res) => {
   const token=req.params.token, session=enrollments.get(token);
   if (!/^[a-f0-9]{64}$/.test(token) || !session) return res.status(404).json({error:'Запрос не найден'});
   if(Date.now()-session.created>30*60*1000){enrollments.delete(token);return res.status(410).json({error:'Запрос истёк'});}
-  if(session.userId!==String(req.account.id)) return res.status(403).json({error:'Этот запрос принадлежит другому аккаунту'}); const saved=await db.query('SELECT udid FROM stark_users WHERE id=$1',[req.account.id]); const udid=saved.rows[0]&&saved.rows[0].udid; res.json(udid?{status:'complete',udid}:{status:'pending'});
+  res.set('Cache-Control','no-store').json(session.udid?{status:'complete',udid:session.udid}:{status:'pending'});
 });
 setInterval(()=>{const now=Date.now();for(const [t,s] of enrollments)if(now-s.created>30*60*1000)enrollments.delete(t);for(const [ip,a] of enrollRate)if(!a.some(t=>now-t<60*60*1000))enrollRate.delete(ip);},5*60*1000).unref();
 
@@ -374,14 +360,14 @@ function applePublicStatus(s) {
     name:s.meta && s.meta.name, bundle:s.meta && s.meta.bundle, version:s.meta && s.meta.version};
 }
 
-app.post('/api/apple/start', appleAccess, requireAccount, appleRateLimit, requireAppleHttps, up.single('ipa'), (req,res) => {
+app.post('/api/apple/start', appleAccess, appleRateLimit, requireAppleHttps, up.single('ipa'), (req,res) => {
   const fail = (code,msg) => { if(req.file) fs.rm(req.file.path,{force:true},()=>{}); return res.status(code).json({error:msg}); };
   const appleId = String(req.body.appleId || '').trim();
   const password = String(req.body.password || '');
-  const udid = String(req.account.udid || '').toUpperCase();
+  const udid = String(req.body.udid || '').trim().toUpperCase();
   if (!req.file) return fail(400,'Выбери IPA-файл');
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(appleId) || !password) return fail(400,'Проверь Apple ID и пароль');
-  if (!udid) return fail(400,'В этом аккаунте ещё нет UDID. Получи его в настройках аккаунта.');
+  if (!knownUdid(udid)) return fail(400,'Сначала получи и подтверди UDID на этом устройстве.');
   const accountKey = crypto.createHash('sha256').update(appleId.toLowerCase()).digest('hex');
   if (appleLocks.has(accountKey)) return fail(409,'Для этого Apple ID уже выполняется подписание');
   let meta;
