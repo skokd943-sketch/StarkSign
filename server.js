@@ -430,7 +430,7 @@ app.post('/api/apple/start', appleAccess, appleRateLimit, requireAppleHttps, up.
         // Read the final signed IPA so the OTA manifest matches its real metadata.
         try {
           const signedZip = new AdmZip(output);
-          const signedInfoEntry = signedZip.getEntries().find(x => /^Payload\\/[^/]+\\.app\\/Info\\.plist$/.test(x.entryName));
+          const signedInfoEntry = signedZip.getEntries().find(x => /^Payload\/[^/]+\.app\/Info\.plist$/.test(x.entryName));
           if (!signedInfoEntry) throw new Error('Info.plist отсутствует в подписанном IPA');
           const signedInfo = plist.parse(signedInfoEntry.getData());
           if (!signedInfo.CFBundleIdentifier) throw new Error('Bundle ID отсутствует в подписанном IPA');
