@@ -44,4 +44,6 @@ WORKDIR /app
 COPY package.json .
 RUN npm install --omit=dev
 COPY server.js .
+# Include repository-hosted IPA catalog in the Railway image.
+COPY apps ./apps
 CMD ["node","server.js"]
