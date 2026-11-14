@@ -140,6 +140,15 @@ nav button.on{color:var(--sky)} nav button.on svg{transform:translateY(-2px) sca
     <button class="btn" id="getudid">Получить UDID автоматически</button>
     <div id="udidstatus" class="hint"></div>
   </div>
+  <p class="sub">AltStore .p12</p>
+  <div class="form">
+    <p class="hint">Подпись без входа в Apple ID. Выбери экспортированный из AltStore сертификат .p12, его пароль и совместимый профиль .mobileprovision.</p>
+    <label>Сертификат AltStore (.p12)<input type="file" id="altP12" accept=".p12,.pfx"></label>
+    <label>Пароль .p12<input type="password" id="altPass" autocomplete="off" placeholder="Пароль сертификата"></label>
+    <label>Профиль (.mobileprovision)<input type="file" id="altProv" accept=".mobileprovision"></label>
+    <button class="btn" id="altSign">Подписать через AltStore .p12</button>
+    <div id="altStatus" class="hint"></div>
+  </div>
 </section>
 
 <section class="view" id="v3">
@@ -323,6 +332,35 @@ $('#login').onclick=async()=>{
     await watchAppleJob(j.id,srv);
   }catch(e){status.textContent=e.message;toast(e.message);}
   finally{window.appleUploading=false;btn.disabled=false;btn.textContent='Подписать IPA через Apple ID';}
+};
+$('#altSign').onclick=async()=>{
+  const ipa=$('#ipa').files[0],p12=$('#altP12').files[0],prov=$('#altProv').files[0],pass=$('#altPass').value;
+  const status=$('#altStatus'),btn=$('#altSign');
+  if(!ipa)return toast('Сначала выбери IPA во вкладке «Приложения»');
+  if(!p12)return toast('Выбери .p12, экспортированный из AltStore');
+  if(!prov)return toast('Нужен совместимый .mobileprovision — в .p12 его нет');
+  const srv=getServer();
+  try{
+    btn.disabled=true;btn.textContent='Загружаю сертификат…';status.textContent='Передаю файлы на сервер для подписи…';
+    const fd=new FormData();
+    fd.append('ipa',ipa,ipa.name||'app.ipa');
+    fd.append('p12',p12,p12.name||'altstore.p12');
+    fd.append('prov',prov,prov.name||'profile.mobileprovision');
+    fd.append('pass',pass);
+    const d=await new Promise((ok,no)=>{
+      const x=new XMLHttpRequest();x.open('POST',srv+'/api/sign');
+      if(getKey())x.setRequestHeader('x-key',getKey());
+      x.upload.onprogress=e=>{if(e.lengthComputable)status.textContent='Загрузка: '+Math.round(e.loaded/e.total*100)+'%'};
+      x.onload=()=>{let j={};try{j=JSON.parse(x.responseText)}catch(_){}
+        x.status>=200&&x.status<300?ok(j):no(Error(j.error||'Ошибка сервера HTTP '+x.status))};
+      x.onerror=()=>no(Error('Сервер недоступен'));x.send(fd);
+    });
+    const l=hist();l.unshift({id:d.id,name:d.name,ver:d.version,srv,date:new Date().toLocaleDateString('ru')});
+    localStorage.signed=JSON.stringify(l.slice(0,30));showSigned();
+    status.textContent='Готово: '+(d.name||'приложение')+' подписано сертификатом AltStore.';
+    toast('IPA подписан через AltStore .p12');
+  }catch(e){status.textContent=e.message;toast(e.message)}
+  finally{btn.disabled=false;btn.textContent='Подписать через AltStore .p12'}
 };
 $('#submitAppleCode').onclick=async()=>{
   const id=localStorage.appleJob,srv=localStorage.appleServer,code=$('#appleCode').value.trim();
