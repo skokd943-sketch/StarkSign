@@ -358,7 +358,7 @@ $('#getudid').onclick=async()=>{
         const statusUrl=new URL('/api/udid/status/'+j.token,base).href;
         const x=await fetch(statusUrl,{headers:{'Accept':'application/json','Cache-Control':'no-store'}});
         const v=await x.json();
-        if(v.status==='complete'&&/^[A-F0-9]{40}$/.test(String(v.udid||''))){
+        if(v.status==='complete'&&/^(?:[A-F0-9]{40}|[A-F0-9]{8}-[A-F0-9]{16})$/i.test(String(v.udid||''))){
           clearInterval(udidPoll);localStorage.udidValue=v.udid;
           out.textContent='UDID получен и проверен: '+v.udid;toast('Устройство подтверждено');
         }else if(x.status===410||x.status===404){clearInterval(udidPoll);out.textContent=v.error||'Запрос UDID истёк. Создай новый.'}

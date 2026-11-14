@@ -140,5 +140,8 @@ struct StarkSignCommand {
 }
 
 private bool isValidUdid(string value) {
-    return value.length == 40 && value.all!(c => (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'));
+ bool hex(char c) { return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'); }
+ if (value.length == 40) return value.all!(c => hex(c));
+ if (value.length == 25 && value[8] == '-') return value[0 .. 8].all!(c => hex(c)) && value[9 .. 25].all!(c => hex(c));
+ return false;
 }
