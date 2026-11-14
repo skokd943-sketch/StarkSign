@@ -416,6 +416,11 @@ setInterval(() => {
   }
 },60*60*1000).unref();
 
+app.use((err,req,res,next) => {
+ console.error('[HTTP error]',req.method,req.path,err && err.message);
+ if (res.headersSent) return next(err);
+ res.status((err && err.status) || 500).json({error:'Ошибка загрузки: '+((err && err.message)||'неизвестная ошибка')});
+});
 app.listen(process.env.PORT || 3000, () => console.log('Stark Sign server started; temporary data: ' + ROOT));
 
 // Диагностика Sideloader. Не запрашивает и не сохраняет Apple ID.

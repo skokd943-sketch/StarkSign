@@ -307,8 +307,10 @@ $('#login').onclick=async()=>{
     btn.disabled=true;btn.textContent='Подключаюсь к Apple…';status.textContent='Запускаю защищённую сессию…';
     const fd=new FormData();fd.append('ipa',f);fd.append('appleId',appleId);fd.append('password',password);fd.append('udid',udid);
     const headers={};if(getKey())headers['x-key']=getKey();
-    const r=await fetch(srv+'/api/apple/start',{method:'POST',headers,body:fd}),j=await r.json();
-    if(!r.ok)throw Error(j.error||'Ошибка сервера');
+    const j=await new Promise((ok,no)=>{const x=new XMLHttpRequest();x.open('POST',srv+'/api/apple/start');if(getKey())x.setRequestHeader('x-key',getKey());
+    x.upload.onprogress=e=>{if(e.lengthComputable)status.textContent='Загружаю IPA: '+Math.round(e.loaded/e.total*100)+'%'};
+    x.onload=()=>{let d=null;try{d=JSON.parse(x.responseText)}catch(_){}if(x.status>=200&&x.status<300&&d)ok(d);else no(Error((d&&d.error)||('Ошибка сервера HTTP '+x.status)))};
+    x.onerror=()=>no(Error('Загрузка IPA прервалась. Проверь интернет и размер файла'));x.send(fd)});
     $('#apw').value='';localStorage.appleJob=j.id;localStorage.appleServer=srv;
     await watchAppleJob(j.id,srv);
   }catch(e){status.textContent=e.message;toast(e.message);}
