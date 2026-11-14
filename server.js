@@ -83,7 +83,7 @@ app.get('/api/apps/:id/icon.png', (req, res) => {
 app.get('/api/apps/:id/manifest.plist', (req, res) => {
   const m = findCatalogApp(req.params.id);
   if (!m) return res.sendStatus(404);
-  const base = (process.env.PUBLIC_URL || ('https://' + req.get('host'))).replace(/\\/+$/, '');
+  const base = (process.env.PUBLIC_URL || ('https://' + req.get('host'))).replace(/\/+$/, '');
   const ipaUrl = base + '/api/apps/' + m.id + '/download.ipa';
   res.set('Cache-Control','no-store').type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
