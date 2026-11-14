@@ -81,6 +81,12 @@ nav button.on{color:var(--sky)} nav button.on svg{transform:translateY(-2px) sca
 .cert b{font-size:17px}.cert small{display:block;color:var(--dim);font-size:13px;margin-top:3px;word-break:break-word}
 .mini{background:rgba(79,184,255,.16);color:var(--sky);border:0;font:600 14px inherit;font-family:inherit;padding:8px 14px;border-radius:99px;text-decoration:none}
 .mini+.mini{margin-left:6px}
+.app-tile{display:flex;align-items:center;gap:12px;background:var(--card);border-radius:20px;padding:12px;margin:8px 0}
+.app-tile img,.app-placeholder{width:52px;height:52px;border-radius:13px;object-fit:cover;background:#303039;flex:none}
+.app-placeholder{display:grid;place-items:center;font-weight:800;color:#9bdcff}
+.app-tile .app-info{min-width:0;flex:1}.app-tile b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.app-tile small{display:block;color:var(--dim);font-size:12px;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.app-tile .mini{white-space:nowrap}
 .bar{height:6px;border-radius:9px;background:#2a2a31;overflow:hidden;display:none}.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--blue),var(--sky));transition:width .3s}
 .btn:disabled{opacity:.6}
 .hint{color:var(--dim);font-size:15px;margin:4px 6px 12px;line-height:1.4}
@@ -112,8 +118,10 @@ nav button.on{color:var(--sky)} nav button.on svg{transform:translateY(-2px) sca
     <button class="btn" id="sign">Подписать</button>
     <div class="bar" id="bar"><i></i></div>
   </div>
-  <p class="sub">Подписанные</p>
+  <p class="sub">На устройстве · подписанные</p>
   <div id="signed"></div>
+  <p class="sub">На сервере <button class="mini" id="refreshApps">Обновить</button></p>
+  <div id="serverApps"><p class="hint">Загрузка приложений…</p></div>
 </section>
 
 <section class="view" id="v2">
@@ -426,6 +434,18 @@ function refreshSel(){const s=$('#certsel'),v=s.value;s.innerHTML=allCerts().map
 const srvIn=$('#srv'),keyIn=$('#key');srvIn.value=localStorage.srv||DEFAULT_SERVER;keyIn.value=getKey();
 srvIn.oninput=()=>localStorage.srv=srvIn.value.trim().replace(/\/+$/,'');keyIn.oninput=()=>localStorage.setItem('accessKey',keyIn.value.trim());
 const hist=()=>{try{return JSON.parse(localStorage.signed||'[]')}catch(e){return[]}};
+async function loadServerApps(){
+  const box=$('#serverApps'),srv=getServer();
+  box.innerHTML='<p class="hint">Загружаю каталог…</p>';
+  try{
+    const r=await fetch(srv+'/api/apps',{cache:'no-store'});
+    if(!r.ok)throw Error('HTTP '+r.status);
+    const apps=await r.json();
+    box.innerHTML=apps.map(a=>`<div class="app-tile">${a.iconUrl?'<img src="'+esc(srv+a.iconUrl)+'" alt="">':'<div class="app-placeholder">IPA</div>'}<div class="app-info"><b>${esc(a.name)}</b><small>${esc(a.version)} · ${esc(a.bundle)}</small></div><a class="mini" href="itms-services://?action=download-manifest&url=${encodeURIComponent(srv+a.installUrl)}">Установить</a></div>`).join('')||'<p class="hint">На сервере пока нет приложений. Добавь IPA в папку apps в GitHub и дождись деплоя Railway.</p>';
+  }catch(e){box.innerHTML='<p class="hint">Не удалось загрузить каталог: '+esc(e.message)+'</p>'}
+}
+$('#refreshApps').onclick=loadServerApps;
+
 function showSigned(){$('#signed').innerHTML=hist().map(h=>`<div class="cert"><div class="ico">IPA</div><div><b>${esc(h.name)}</b><small>${esc(h.ver)} · ${esc(h.date)}</small></div><div><a class="mini" href="itms-services://?action=download-manifest&url=${h.srv}/api/manifest/${h.id}.plist">Установить</a><a class="mini" href="${h.srv}/api/ipa/${h.id}.ipa">IPA</a></div></div>`).join('')||'<p class="hint">Подписанных приложений пока нет. Файлы на сервере хранятся 24 часа.</p>'}
 $('#sign').onclick=async()=>{
   const srv=getServer();
@@ -450,6 +470,7 @@ $('#sign').onclick=async()=>{
   btn.disabled=false;btn.textContent='Подписать';bar.style.display='none';fill.style.width='0';
 };
 showSigned();
+loadServerApps();
 loadMine();loadRepo();
 detectServer(true);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)detectServer(true)});
