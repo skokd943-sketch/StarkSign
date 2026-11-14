@@ -4,7 +4,7 @@ const AdmZip = require('adm-zip'), plist = require('simple-plist');
 const pty = require('node-pty');
 const { Pool } = require('pg');
 const db = process.env.DATABASE_URL ? new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false }, max: 5 }) : null;
-const dbReady = db ? db.query(`CREATE TABLE IF NOT EXISTS stark_users (id BIGSERIAL PRIMARY KEY, nickname VARCHAR(32) NOT NULL UNIQUE, password_hash TEXT NOT NULL, udid VARCHAR(64), created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()); CREATE TABLE IF NOT EXISTS stark_sessions (token_hash CHAR(64) PRIMARY KEY, user_id BIGINT NOT NULL REFERENCES stark_users(id) ON DELETE CASCADE, expires_at TIMESTAMPTZ NOT NULL);`).then(()=>console.log('[accounts] PostgreSQL ready')).catch(e=>{console.error('[accounts] PostgreSQL init failed:',e.message); throw e;}) : Promise.resolve();
+const dbReady = db ? db.query('CREATE TABLE IF NOT EXISTS stark_users (id BIGSERIAL PRIMARY KEY, nickname VARCHAR(32) NOT NULL UNIQUE, password_hash TEXT NOT NULL, udid VARCHAR(64), created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())').then(()=>db.query('CREATE UNIQUE INDEX IF NOT EXISTS stark_users_nickname_ci ON stark_users (lower(nickname))')).then(()=>db.query('CREATE TABLE IF NOT EXISTS stark_sessions (token_hash CHAR(64) PRIMARY KEY, user_id BIGINT NOT NULL REFERENCES stark_users(id) ON DELETE CASCADE, expires_at TIMESTAMPTZ NOT NULL)')).then(()=>console.log('[accounts] PostgreSQL ready')).catch(e=>{console.error('[accounts] PostgreSQL init failed:',e.message); throw e;}) : Promise.resolve();
 const hashToken = value => crypto.createHash('sha256').update(value).digest('hex');
 const hashPassword = (password, salt=crypto.randomBytes(16).toString('hex')) => ({salt,hash:crypto.scryptSync(password,salt,64).toString('hex')});
 const passwordMatches = (password, stored) => { try { const p=JSON.parse(stored), got=crypto.scryptSync(password,p.salt,64), expected=Buffer.from(p.hash,'hex'); return got.length===expected.length && crypto.timingSafeEqual(got,expected); } catch (_) { return false; } };
@@ -402,7 +402,7 @@ app.post('/api/apple/start', appleAccess, requireAccount, appleRateLimit, requir
   try { fs.chmodSync(work,0o700); fs.chmodSync(config,0o700); } catch(_){}
   const input = path.join(work,id+'.ipa'), output = path.join(work,'signed.ipa');
   fs.renameSync(req.file.path,input);
-  const session = {id,work,input,output,config,accountKey,appleId, password,udid,meta,status:'starting',message:'Запускаю безопасный вход Apple…',error:'',buffer:'',sentId:false,sentPassword:false,waitingCode:false,created:Date.now(),proc:null};
+  const session = {id,work,input,output,config,accountKey,appleId, password,udid,meta,status:'starting',message:'Запускаю безопасный вход Apple…',error:'',buffer:'',secretValues:[appleId,password],sentId:false,sentPassword:false,waitingCode:false,created:Date.now(),proc:null};
   appleSessions.set(id,session);
   appleLocks.add(accountKey);
   try {
@@ -414,6 +414,8 @@ app.post('/api/apple/start', appleAccess, requireAccount, appleRateLimit, requir
     proc.onData(data => {
       const clean = data.replace(/\x1b\[[0-?]*[ -/]*[@-~]/g,'').replace(/\r/g,'');
       session.buffer = (session.buffer + clean).slice(-12000);
+      let safeLog=clean; for(const secret of session.secretValues||[]) if(secret) safeLog=safeLog.split(secret).join('[REDACTED]');
+      if(safeLog.trim()) console.log('[STARKSIGN]['+session.id.slice(0,8)+'] '+safeLog.trimEnd());
       const tail = session.buffer.slice(-500);
       if (!session.sentId && /Apple ID:\s*$/i.test(tail)) {
         session.sentId = true; proc.write(session.appleId+'\r'); session.appleId='';
@@ -439,7 +441,7 @@ app.post('/api/apple/start', appleAccess, requireAccount, appleRateLimit, requir
     });
     proc.onExit(({exitCode}) => {
       appleLocks.delete(accountKey);
-      session.password=''; session.appleId=''; session.proc=null; session.waitingCode=false;
+      session.password=''; session.appleId=''; session.secretValues=[]; session.proc=null; session.waitingCode=false;
       if (exitCode === 0 && fs.existsSync(output)) {
         // The signing CLI appends the Apple team ID to the app's Bundle ID.
         // Read the final signed IPA so the OTA manifest matches its real metadata.
@@ -483,7 +485,7 @@ app.post('/api/apple/code/:id', appleAccess, express.json({limit:'2kb'}), (req,r
   const s=appleSessions.get(req.params.id), code=String(req.body.code || '').trim();
   if (!s || s.status !== 'awaiting_code' || !s.proc || !s.waitingCode) return res.status(409).json({error:'Сейчас код подтверждения не ожидается'});
   if (!/^\d{4,8}$/.test(code)) return res.status(400).json({error:'Введи код из SMS или доверенного устройства'});
-  s.waitingCode=false; s.status='authenticating'; s.message='Проверяю код Apple…';
+  s.waitingCode=false; s.secretValues.push(code); s.status='authenticating'; s.message='Проверяю код Apple…';
   s.proc.write(code+'\r');
   res.json({ok:true});
 });
