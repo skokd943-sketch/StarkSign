@@ -4,7 +4,6 @@
  
  import std.algorithm.searching;
  import std.digest.sha;
-+import std.exception : enforce;
  import file = std.file;
  import std.path;
  import std.uni;
@@ -18,7 +17,7 @@
              if (sideloaderCertificates.length != 0) {
                  Vector!ubyte certContent;
                  Vector!ubyte ourPublicKey = privateKey.x509SubjectPublicKey();
-@@ -72,9 +73,19 @@
+@@ -72,9 +73,20 @@
                      // +/
                  }
              }
@@ -29,17 +28,16 @@
 +                appleAccount.revokeDevelopmentCert!iOS(team, cert).unwrap();
 +            }
          } else {
--            // Do not submit a second CSR when another client (for example AltStore)
--            // already owns the account's development certificate.
 +            // No local private key: replace the account's existing development
 +            // certificates. Their private keys are unavailable to this server.
-             auto existingCertificates = appleAccount.listAllDevelopmentCerts!iOS(team).unwrap();
--            enforce(existingCertificates.length == 0,
--                "An iOS Development certificate already exists for this Apple ID, but Stark Sign does not have its private key. Export the existing certificate as a .p12 from AltStore and import it in Stark Sign, or revoke it before creating a new certificate.");
++            auto existingCertificates = appleAccount.listAllDevelopmentCerts!iOS(team).unwrap();
 +            foreach (cert; existingCertificates) {
 +                log.warnF!"Revoking existing development certificate (serial %s) to create a Stark Sign key."(cert.serialNumber);
 +                appleAccount.revokeDevelopmentCert!iOS(team, cert).unwrap();
 +            }
- 
++
              log.debug_("Generating a new RSA key");
              privateKey = RSAPrivateKey(rng, 2048);
+ 
+             file.write(keyFile, botan.pubkey.pkcs8.PEM_encode(privateKey));
+         }
