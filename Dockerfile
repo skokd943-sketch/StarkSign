@@ -26,7 +26,6 @@ RUN set -euxo pipefail \
  && export PATH=/opt/ldc2-1.36.0-linux-x86_64/bin:$PATH \
  && git clone --depth 1 https://github.com/Dadoum/Sideloader /opt/sideloader \
  && cd /opt/sideloader \
- # Reuse a matching iOS development certificate regardless of the machineName Apple reports. \\
  && sed -i 's/auto sideloaderCertificates = certificates.find!((cert) => cert.machineName == applicationName);/auto sideloaderCertificates = certificates;/' source/sideload/certificateidentity.d \\
  && cp /tmp/starksign.d frontends/cli/source/starksign.d \
  && sed -i '/^import tool;$/a import starksign;' frontends/cli/source/cli_frontend.d \
