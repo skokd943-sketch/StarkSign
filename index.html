@@ -223,7 +223,7 @@ async function refreshAccount(){
   const status=$('#accountStatus'),udid=$('#accountUdid'),logout=$('#accountLogout');
   if(!getAccountToken()){status.textContent='Войди или создай аккаунт. UDID будет закреплён за ним и сохранится на сервере.';udid.textContent='';logout.style.display='none';return;}
   try{const r=await fetch(getServer()+'/api/account/me',{headers:accountHeaders(),cache:'no-store'}),j=await r.json();if(!r.ok)throw Error(j.error||'Сессия недействительна');
-    status.textContent='Вошёл как '+j.user.nickname;udid.textContent=j.user.udid?'Сохранённый UDID: '+j.user.udid:'UDID ещё не привязан. Нажми «Получить UDID автоматически» во вкладке «Сертификаты».';logout.style.display='inline-block';
+    status.textContent='Вошёл как '+j.user.nickname;if(j.user.udid)localStorage.udidValue=j.user.udid;else localStorage.removeItem('udidValue');udid.textContent=j.user.udid?'Сохранённый UDID: '+j.user.udid:'UDID ещё не привязан. Нажми «Получить UDID автоматически» во вкладке «Сертификаты».';logout.style.display='inline-block';
     localStorage.accountNick=j.user.nickname;
   }catch(e){localStorage.removeItem('starkAccountToken');status.textContent=e.message;udid.textContent='';logout.style.display='none';}
 }
@@ -457,7 +457,7 @@ $('#getudid').onclick=async()=>{
   }catch(e){out.textContent=e.message||'Неизвестная ошибка';toast(out.textContent)}
   finally{b.disabled=false;b.textContent='Получить UDID автоматически'}
 };
-if(localStorage.udidToken&&localStorage.udidServer){const t=localStorage.udidToken,s=localStorage.udidServer;const checkUdid=async()=>{try{const r=await fetch(s+'/api/udid/status/'+t),v=await r.json();if(v.status==='complete'){clearInterval(udidPoll);localStorage.udidValue=v.udid;$('#udidstatus').textContent='UDID получен и проверен: '+v.udid;}}catch(e){}};checkUdid();udidPoll=setInterval(checkUdid,4000);}
+if(localStorage.udidToken&&localStorage.udidServer){const t=localStorage.udidToken,s=localStorage.udidServer;const checkUdid=async()=>{try{const r=await fetch(s+'/api/udid/status/'+t,{headers:accountHeaders()}),v=await r.json();if(v.status==='complete'){clearInterval(udidPoll);localStorage.udidValue=v.udid;$('#udidstatus').textContent='UDID получен и проверен: '+v.udid;}}catch(e){}};checkUdid();udidPoll=setInterval(checkUdid,4000);}
 $('#refresh').onclick=()=>{loadRepo();toast('Список обновлён')};
 setInterval(()=>{if(!document.hidden&&$('#v2').classList.contains('on'))loadRepo()},30000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&$('#v2').classList.contains('on'))loadRepo()});
