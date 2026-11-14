@@ -426,6 +426,26 @@ app.post('/api/apple/start', appleAccess, appleRateLimit, requireAppleHttps, up.
       appleLocks.delete(accountKey);
       session.password=''; session.appleId=''; session.proc=null; session.waitingCode=false;
       if (exitCode === 0 && fs.existsSync(output)) {
+        // The signing CLI appends the Apple team ID to the app's Bundle ID.
+        // Read the final signed IPA so the OTA manifest matches its real metadata.
+        try {
+          const signedZip = new AdmZip(output);
+          const signedInfoEntry = signedZip.getEntries().find(x => /^Payload\\/[^/]+\\.app\\/Info\\.plist$/.test(x.entryName));
+          if (!signedInfoEntry) throw new Error('Info.plist отсутствует в подписанном IPA');
+          const signedInfo = plist.parse(signedInfoEntry.getData());
+          if (!signedInfo.CFBundleIdentifier) throw new Error('Bundle ID отсутствует в подписанном IPA');
+          session.meta = {
+            name: signedInfo.CFBundleDisplayName || signedInfo.CFBundleName || session.meta.name,
+            bundle: signedInfo.CFBundleIdentifier,
+            version: signedInfo.CFBundleShortVersionString || signedInfo.CFBundleVersion || session.meta.version
+          };
+        } catch (e) {
+          session.status='error';
+          session.error='Подписанный IPA не прошёл проверку метаданных: '+e.message;
+          session.message='Не удалось подготовить установку';
+          try { fs.rmSync(input,{force:true}); fs.rmSync(output,{force:true}); } catch(_){}
+          return;
+        }
         session.status='complete'; session.message='IPA успешно подписан';
         try { fs.rmSync(input,{force:true}); } catch(_){}
       } else {
