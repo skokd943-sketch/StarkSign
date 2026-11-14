@@ -8,31 +8,38 @@
  import file = std.file;
  import std.path;
  import std.uni;
-@@ -57,7 +58,9 @@
+@@ -57,7 +58,13 @@
  
              log.debug_("Checking if any certificate online is matching the private key...");
              auto certificates = appleAccount.listAllDevelopmentCerts!iOS(team).unwrap();
 -            auto sideloaderCertificates = certificates.find!((cert) => cert.machineName == applicationName);
-+            // The machine name is not a reliable identity: reuse any certificate
-+            // whose public key matches the private key persisted by Stark Sign.
++            // Match by public key, not machine name: the latter can change.
 +            auto sideloaderCertificates = certificates;
              if (sideloaderCertificates.length != 0) {
                  Vector!ubyte certContent;
                  Vector!ubyte ourPublicKey = privateKey.x509SubjectPublicKey();
-@@ -72,7 +75,17 @@
+@@ -72,17 +79,25 @@
                      // +/
                  }
              }
-+            // A certificate exists but its private key is not available here.
-+            // Do not request another certificate and trigger Apple's 7460 error.
-+            enforce(certificates.length == 0,
-+                "An iOS Development certificate already exists for this Apple ID, but Stark Sign does not have its private key. Export the existing certificate as a .p12 from AltStore and import it in Stark Sign, or revoke it before creating a new certificate.");
++            // The key is ours but Apple has only certificates for other keys.
++            // Revoke those stale certificates so a fresh CSR can be issued.
++            foreach (cert; certificates) {
++                log.warnF!"Revoking development certificate without a matching local private key (serial %s)."(cert.serialNumber);
++                appleAccount.revokeDevelopmentCert!iOS(team, cert).unwrap();
++            }
          } else {
-+            // Do not submit a second CSR when another client (for example AltStore)
-+            // already owns the account's development certificate.
-+            auto existingCertificates = appleAccount.listAllDevelopmentCerts!iOS(team).unwrap();
-+            enforce(existingCertificates.length == 0,
-+                "An iOS Development certificate already exists for this Apple ID, but Stark Sign does not have its private key. Export the existing certificate as a .p12 from AltStore and import it in Stark Sign, or revoke it before creating a new certificate.");
-+
+-            // Do not submit a second CSR when another client (for example AltStore)
+-            // already owns the account's development certificate.
++            // No local private key: replace the account's existing development
++            // certificates. Their private keys are unavailable to this server.
+             auto existingCertificates = appleAccount.listAllDevelopmentCerts!iOS(team).unwrap();
+-            enforce(existingCertificates.length == 0,
+-                "An iOS Development certificate already exists for this Apple ID, but Stark Sign does not have its private key. Export the existing certificate as a .p12 from AltStore and import it in Stark Sign, or revoke it before creating a new certificate.");
++            foreach (cert; existingCertificates) {
++                log.warnF!"Revoking existing development certificate (serial %s) to create a Stark Sign key."(cert.serialNumber);
++                appleAccount.revokeDevelopmentCert!iOS(team, cert).unwrap();
++            }
+ 
              log.debug_("Generating a new RSA key");
              privateKey = RSAPrivateKey(rng, 2048);
