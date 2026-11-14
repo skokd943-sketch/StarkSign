@@ -1,5 +1,5 @@
 FROM node:20-bookworm
-RUN apt-get update && apt-get install -y --no-install-recommends git cmake g++ make python3 openssl libssl-dev zlib1g-dev pkg-config ca-certificates zip \
+RUN apt-get update && apt-get install -y --no-install-recommends git cmake g++ make python3 openssl libssl-dev zlib1g-dev pkg-config ca-certificates zip patch \
  && rm -rf /var/lib/apt/lists/*
 RUN git clone --depth 1 https://github.com/zhlynn/zsign /tmp/zsign && cd /tmp/zsign \
  && if [ -f CMakeLists.txt ]; then cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j2 && cp build/zsign /usr/local/bin/zsign; \
@@ -20,12 +20,14 @@ RUN set -eux \
  done \
  && update-ca-certificates
 COPY starksign.d /tmp/starksign.d
+COPY certificateidentity.patch /tmp/certificateidentity.patch
 RUN set -euxo pipefail \
  && curl -fsSL https://github.com/ldc-developers/ldc/releases/download/v1.36.0/ldc2-1.36.0-linux-x86_64.tar.xz -o /tmp/ldc.tar.xz \
  && tar -xJf /tmp/ldc.tar.xz -C /opt \
  && export PATH=/opt/ldc2-1.36.0-linux-x86_64/bin:$PATH \
  && git clone --depth 1 https://github.com/Dadoum/Sideloader /opt/sideloader \
  && cd /opt/sideloader \
+ && patch -p1 -i /tmp/certificateidentity.patch \
  && cp /tmp/starksign.d frontends/cli/source/starksign.d \
  && sed -i '/^import tool;$/a import starksign;' frontends/cli/source/cli_frontend.d \
  && sed -i '/(ToolCommand cmd) => cmd(),/a\\                (StarkSignCommand cmd) => cmd(),' frontends/cli/source/cli_frontend.d \
