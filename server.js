@@ -239,19 +239,19 @@ app.post('/api/udid/response/:token', express.raw({type:()=>true,limit:'256kb'})
     if (!challengeOk) throw new Error('Apple device response Challenge does not match enrollment');
 
     verifyStage='save verified UDID';
+    const base=(process.env.PUBLIC_URL || ('https://' + req.get('host'))).replace(/\/+$/,'');
     session.used=true; session.udid=udid; session.completed=Date.now();
     const store=path.join(ROOT,'udids.json'); let rows=[];
     try { rows=JSON.parse(fs.readFileSync(store,'utf8')); if(!Array.isArray(rows)) rows=[]; } catch(_){}
     rows=rows.filter(x=>x.token!==token); rows.push({token,udid,created:new Date().toISOString()});
     fs.writeFileSync(store,JSON.stringify(rows,null,2));
-    const doneXml='<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"><plist version="1.0"><dict><key>PayloadContent</key><array/><key>PayloadDisplayName</key>'+plistString('Stark Sign — завершено')+'<key>PayloadIdentifier</key>'+plistString('com.starksign.udid.complete.'+token)+'<key>PayloadType</key>'+plistString('Configuration')+'<key>PayloadUUID</key>'+plistString(crypto.randomUUID())+'<key>PayloadVersion</key><integer>1</integer></dict></plist>';
-    const signed=path.join(ENROLL_DIR,id+'.response'); signedProfile(doneXml,signed);
-    res.set('Content-Type','application/x-apple-aspen-config').send(fs.readFileSync(signed)); fs.rmSync(signed,{force:true});
+    console.info('[UDID] verified OK; token:',token.slice(0,8)); return res.redirect(301, base+'/enroll/done');
   } catch(e) {
     console.warn('[UDID] enrollment rejected at stage:',verifyStage,'error:',e.message,'details:',e.stderr?String(e.stderr).slice(-1200):'none');
     res.status(400).send('Device signature could not be verified');
   } finally { for(const f of [cms,decoded,signer]) fs.rmSync(f,{force:true}); }
 });
+app.get('/enroll/done', (req,res) => res.set('Cache-Control','no-store').type('html').send('<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><body style="font-family:-apple-system,sans-serif;background:#0b0b10;color:#fff;text-align:center;padding:60px 20px"><h2>UDID получен ✅</h2><p>Вернись в Stark Sign — устройство уже подтверждено.</p>'));
 app.get('/api/udid/status/:token', (req,res) => {
   const token=req.params.token, session=enrollments.get(token);
   if (!/^[a-f0-9]{64}$/.test(token) || !session) return res.status(404).json({error:'Запрос не найден'});
