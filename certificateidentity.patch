@@ -8,7 +8,7 @@
  import file = std.file;
  import std.path;
  import std.uni;
-@@ -57,7 +58,13 @@
+@@ -57,7 +58,8 @@
  
              log.debug_("Checking if any certificate online is matching the private key...");
              auto certificates = appleAccount.listAllDevelopmentCerts!iOS(team).unwrap();
@@ -18,7 +18,7 @@
              if (sideloaderCertificates.length != 0) {
                  Vector!ubyte certContent;
                  Vector!ubyte ourPublicKey = privateKey.x509SubjectPublicKey();
-@@ -72,17 +79,25 @@
+@@ -72,9 +73,19 @@
                      // +/
                  }
              }
