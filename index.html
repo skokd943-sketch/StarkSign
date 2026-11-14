@@ -305,7 +305,11 @@ $('#login').onclick=async()=>{
   const btn=$('#login'),status=$('#appleStatus');
   try{
     btn.disabled=true;btn.textContent='Подключаюсь к Apple…';status.textContent='Запускаю защищённую сессию…';
-    const fd=new FormData();fd.append('ipa',f);fd.append('appleId',appleId);fd.append('password',password);fd.append('udid',udid);
+    status.textContent='Читаю IPA с устройства...';
+    let blob;
+    try{const buf=await f.arrayBuffer();if(!buf.byteLength)throw Error('файл пустой');blob=new Blob([buf],{type:'application/octet-stream'});}
+    catch(e){throw Error('Не удалось прочитать IPA: '+(e.message||e)+'. Если файл в iCloud, скачай его на iPhone и выбери заново.');}
+    const fd=new FormData();fd.append('appleId',appleId);fd.append('password',password);fd.append('udid',udid);fd.append('ipa',blob,f.name||'app.ipa');
     const headers={};if(getKey())headers['x-key']=getKey();
     const j=await new Promise((ok,no)=>{const x=new XMLHttpRequest();x.open('POST',srv+'/api/apple/start');if(getKey())x.setRequestHeader('x-key',getKey());
     x.upload.onprogress=e=>{if(e.lengthComputable)status.textContent='Загружаю IPA: '+Math.round(e.loaded/e.total*100)+'%'};

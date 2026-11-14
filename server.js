@@ -417,7 +417,7 @@ setInterval(() => {
 },60*60*1000).unref();
 
 app.use((err,req,res,next) => {
- console.error('[HTTP error]',req.method,req.path,err && err.message);
+ console.error('[HTTP error]',req.method,req.path,err && err.message,'content-length:',req.get('content-length'),'bytesRead:',req.socket&&req.socket.bytesRead);
  if (res.headersSent) return next(err);
  res.status((err && err.status) || 500).json({error:'Ошибка загрузки: '+((err && err.message)||'неизвестная ошибка')});
 });
