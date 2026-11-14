@@ -1,12 +1,5 @@
 --- a/source/sideload/certificateidentity.d
 +++ b/source/sideload/certificateidentity.d
-@@ -2,6 +2,7 @@
- 
- import std.algorithm.searching;
- import std.digest.sha;
- import file = std.file;
- import std.path;
- import std.uni;
 @@ -57,7 +58,8 @@
  
              log.debug_("Checking if any certificate online is matching the private key...");
