@@ -1,7 +1,7 @@
 --- a/source/sideload/certificateidentity.d
 +++ b/source/sideload/certificateidentity.d
 @@ -57,7 +57,9 @@
-
+ 
              log.debug_("Checking if any certificate online is matching the private key...");
              auto certificates = appleAccount.listAllDevelopmentCerts!iOS(team).unwrap();
 -            auto sideloaderCertificates = certificates.find!((cert) => cert.machineName == applicationName);
@@ -24,4 +24,3 @@
 +
              log.debug_("Generating a new RSA key");
              privateKey = RSAPrivateKey(rng, 2048);
-
