@@ -161,6 +161,15 @@ nav button.on{color:var(--sky)} nav button.on svg{transform:translateY(-2px) sca
 
 <section class="view" id="v3">
   <h1>Настройки</h1>
+  <p class="sub">Аккаунт Stark Sign</p>
+  <div class="form" id="accountBox">
+    <label>Никнейм<input id="accountNick" maxlength="24" autocomplete="username" placeholder="Твой ник"></label>
+    <label>Пароль<input id="accountPassword" type="password" minlength="8" maxlength="128" autocomplete="current-password" placeholder="Не менее 8 символов"></label>
+    <div class="row" style="gap:8px"><button class="btn" id="accountLogin" style="flex:1">Войти</button><button class="btn" id="accountRegister" style="flex:1">Создать аккаунт</button></div>
+    <div class="hint" id="accountStatus">Войди или создай аккаунт. UDID будет закреплён за ним и сохранится на сервере.</div>
+    <div class="hint" id="accountUdid"></div>
+    <button class="mini" id="accountLogout" style="display:none">Выйти из аккаунта</button>
+  </div>
   <div class="form">
     <div class="hint" id="serverStatus">Проверяю постоянный сервер…</div>
     <label>Адрес сервера<input id="srv" placeholder="https://название.up.railway.app" autocapitalize="off" autocorrect="off"></label>
@@ -208,6 +217,28 @@ const DEFAULT_SERVER='https://stark-sign-server-production.up.railway.app';
 if(!localStorage.srv) localStorage.srv=DEFAULT_SERVER;
 /* localStorage.key — это встроенный метод Storage, поэтому ключ доступа храним под другим именем */
 const getKey=()=>localStorage.getItem('accessKey')||localStorage.getItem('key')||'';
+const getAccountToken=()=>localStorage.getItem('starkAccountToken')||'';
+const accountHeaders=()=>getAccountToken()?{Authorization:'Bearer '+getAccountToken() }:{};
+async function refreshAccount(){
+  const status=$('#accountStatus'),udid=$('#accountUdid'),logout=$('#accountLogout');
+  if(!getAccountToken()){status.textContent='Войди или создай аккаунт. UDID будет закреплён за ним и сохранится на сервере.';udid.textContent='';logout.style.display='none';return;}
+  try{const r=await fetch(getServer()+'/api/account/me',{headers:accountHeaders(),cache:'no-store'}),j=await r.json();if(!r.ok)throw Error(j.error||'Сессия недействительна');
+    status.textContent='Вошёл как '+j.user.nickname;udid.textContent=j.user.udid?'Сохранённый UDID: '+j.user.udid:'UDID ещё не привязан. Нажми «Получить UDID автоматически» во вкладке «Сертификаты».';logout.style.display='inline-block';
+    localStorage.accountNick=j.user.nickname;
+  }catch(e){localStorage.removeItem('starkAccountToken');status.textContent=e.message;udid.textContent='';logout.style.display='none';}
+}
+async function accountAction(action){
+  const nickname=$('#accountNick').value.trim(),password=$('#accountPassword').value,status=$('#accountStatus');
+  if(!nickname||!password){toast('Введи ник и пароль');return;}
+  const a=$('#accountLogin'),b=$('#accountRegister');a.disabled=b.disabled=true;
+  try{const r=await fetch(getServer()+'/api/account/'+action,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nickname,password})}),j=await r.json();if(!r.ok)throw Error(j.error||'Ошибка аккаунта');
+    localStorage.setItem('starkAccountToken',j.token);localStorage.accountNick=j.user.nickname;$('#accountPassword').value='';await refreshAccount();toast(action==='register'?'Аккаунт создан':'Вход выполнен');
+  }catch(e){status.textContent=e.message;toast(e.message);}finally{a.disabled=b.disabled=false;}
+}
+$('#accountLogin').onclick=()=>accountAction('login');
+$('#accountRegister').onclick=()=>accountAction('register');
+$('#accountLogout').onclick=async()=>{try{await fetch(getServer()+'/api/account/logout',{method:'POST',headers:accountHeaders()});}catch(_){}localStorage.removeItem('starkAccountToken');await refreshAccount();toast('Вы вышли из аккаунта');};
+
 function normalizeServer(value){
   const u=new URL(String(value||'').trim());
   if(!['https:','http:'].includes(u.protocol)||u.username||u.password) throw new Error('Нужен корректный HTTPS-адрес сервера');
@@ -297,7 +328,7 @@ async function watchAppleJob(id,srv){
   const status=$('#appleStatus'),codeWrap=$('#appleCodeWrap'),codeBtn=$('#submitAppleCode');
   const check=async()=>{
     try{
-      const headers={};if(getKey())headers['x-key']=getKey();
+      const headers={...accountHeaders()};if(getKey())headers['x-key']=getKey();
       const r=await fetch(srv+'/api/apple/status/'+id,{headers});
       if(r.status===404){clearInterval(applePoll);localStorage.removeItem('appleJob');localStorage.removeItem('appleServer');codeWrap.style.display='none';codeBtn.style.display='none';if(!window.appleUploading)status.textContent='';return;}
       const j=await r.json();
@@ -330,9 +361,9 @@ $('#login').onclick=async()=>{
     let blob;
     try{const buf=await f.arrayBuffer();if(!buf.byteLength)throw Error('файл пустой');blob=new Blob([buf],{type:'application/octet-stream'});}
     catch(e){throw Error('Не удалось прочитать IPA: '+(e.message||e)+'. Если файл в iCloud, скачай его на iPhone и выбери заново.');}
-    const fd=new FormData();fd.append('appleId',appleId);fd.append('password',password);fd.append('udid',udid);fd.append('ipa',blob,f.name||'app.ipa');
+    const fd=new FormData();fd.append('appleId',appleId);fd.append('password',password);fd.append('ipa',blob,f.name||'app.ipa');
     const headers={};if(getKey())headers['x-key']=getKey();
-    const j=await new Promise((ok,no)=>{const x=new XMLHttpRequest();x.open('POST',srv+'/api/apple/start');if(getKey())x.setRequestHeader('x-key',getKey());
+    const j=await new Promise((ok,no)=>{const x=new XMLHttpRequest();x.open('POST',srv+'/api/apple/start');if(getKey())x.setRequestHeader('x-key',getKey());if(getAccountToken())x.setRequestHeader('Authorization','Bearer '+getAccountToken());
       x.upload.onprogress=e=>{if(e.lengthComputable)status.textContent='Загружаю IPA: '+Math.round(e.loaded/e.total*100)+'%'};
       x.onload=()=>{let d=null;try{d=JSON.parse(x.responseText)}catch(_){}if(x.status>=200&&x.status<300&&d)ok(d);else no(Error((d&&d.error)||('Ошибка сервера HTTP '+x.status)))};
       x.onerror=()=>no(Error('Загрузка IPA прервалась. Проверь интернет и размер файла'));x.send(fd)});
@@ -373,7 +404,7 @@ $('#altSign').onclick=async()=>{
 $('#submitAppleCode').onclick=async()=>{
   const id=localStorage.appleJob,srv=localStorage.appleServer,code=$('#appleCode').value.trim();
   if(!id||!code)return toast('Введи код Apple');
-  const headers={'Content-Type':'application/json'};if(getKey())headers['x-key']=getKey();
+  const headers={'Content-Type':'application/json',...accountHeaders()};if(getKey())headers['x-key']=getKey();
   try{
     const r=await fetch(srv+'/api/apple/code/'+id,{method:'POST',headers,body:JSON.stringify({code})}),j=await r.json();
     if(!r.ok)throw Error(j.error||'Код не принят');
@@ -388,6 +419,7 @@ $('#getudid').onclick=async()=>{
   let srv, startUrl;
   try{
     b.disabled=true;b.textContent='Создаю профиль…';out.textContent='Проверяю адрес сервера…';
+    if(!getAccountToken())throw Error('Сначала войди в аккаунт Stark Sign в настройках');
     const raw=getServer();
     let base;
     try{base=new URL(raw)}catch(_){throw Error('Неверный адрес сервера. Укажи полный адрес, начиная с https://')}
@@ -396,7 +428,7 @@ $('#getudid').onclick=async()=>{
     srv=base.origin;startUrl=new URL('/api/udid/start',base).href;
     out.textContent='Отправляю запрос серверу…';
     let r;
-    try{r=await fetch(startUrl,{method:'POST',headers:{'Accept':'application/json','Cache-Control':'no-store'}})}
+    try{r=await fetch(startUrl,{method:'POST',headers:{'Accept':'application/json','Cache-Control':'no-store',...accountHeaders()}})}
     catch(e){throw Error('Не удалось подключиться к серверу: '+(e.message||'ошибка сети'))}
     const body=await r.text();let j;
     try{j=JSON.parse(body)}catch(_){throw Error('Сервер вернул не JSON (HTTP '+r.status+'). Проверь Railway и логи сервера.')}
@@ -413,7 +445,7 @@ $('#getudid').onclick=async()=>{
     udidPoll=setInterval(async()=>{
       try{
         const statusUrl=new URL('/api/udid/status/'+j.token,base).href;
-        const x=await fetch(statusUrl,{headers:{'Accept':'application/json','Cache-Control':'no-store'}});
+        const x=await fetch(statusUrl,{headers:{'Accept':'application/json','Cache-Control':'no-store',...accountHeaders()}});
         const v=await x.json();
         if(v.status==='complete'&&/^(?:[A-F0-9]{40}|[A-F0-9]{8}-[A-F0-9]{16})$/i.test(String(v.udid||''))){
           clearInterval(udidPoll);localStorage.udidValue=v.udid;
@@ -473,6 +505,7 @@ showSigned();
 loadServerApps();
 loadMine();loadRepo();
 detectServer(true);
+refreshAccount();
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)detectServer(true)});
 window.addEventListener('pageshow',()=>detectServer(true));
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
