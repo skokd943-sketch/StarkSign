@@ -27,7 +27,7 @@ app.set('trust proxy', 1);
 app.use(express.json({limit:'32kb'}));
 app.use((req, res, next) => {
   res.set('Access-Control-Allow-Origin', ORIGIN);
-  res.set('Access-Control-Allow-Headers', 'x-key, content-type, cache-control');
+  res.set('Access-Control-Allow-Headers', 'x-key, content-type, cache-control, authorization');
   res.set('Access-Control-Max-Age', '600');
   res.set('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
   if (req.method === 'OPTIONS') return res.end();
@@ -320,7 +320,7 @@ app.post('/api/udid/response/:token', express.raw({type:()=>true,limit:'256kb'})
     verifyStage='save verified UDID';
     const base=(process.env.PUBLIC_URL || ('https://' + req.get('host'))).replace(/\/+$/,'');
     session.used=true; session.udid=udid; session.completed=Date.now();
-    db.query('UPDATE stark_users SET udid=$1 WHERE id=$2',[udid,session.userId]).catch(e=>console.error('[UDID] account save failed:',e.message));
+    await db.query('UPDATE stark_users SET udid=$1 WHERE id=$2',[udid,session.userId]);
     const store=path.join(ROOT,'udids.json'); let rows=[];
     try { rows=JSON.parse(fs.readFileSync(store,'utf8')); if(!Array.isArray(rows)) rows=[]; } catch(_){}
     rows=rows.filter(x=>x.token!==token); rows.push({token,udid,created:new Date().toISOString()});
