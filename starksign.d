@@ -99,8 +99,21 @@ struct StarkSignCommand {
 
         auto appBundle = new Application(input);
         scope(exit) { if (appBundle.tempPath.length && exists(appBundle.tempPath)) rmdirRecurse(appBundle.tempPath); }
-        auto bundleId = appBundle.bundleIdentifier();
-        enforce(bundleId.length > 0, "IPA has no CFBundleIdentifier.");
+        string originalBundleId = appBundle.bundleIdentifier();
+        enforce(originalBundleId.length > 0, "IPA has no CFBundleIdentifier.");
+        // App IDs are global on Apple's side, so make the id unique per team (same as Sideloader's install flow).
+        string teamSuffix = "." ~ team.teamId;
+        string bundleId = originalBundleId.endsWith(teamSuffix) ? originalBundleId : originalBundleId ~ teamSuffix;
+        if (bundleId != originalBundleId) {
+            auto appExtensions = appBundle.appExtensions();
+            foreach (ref plugin; appExtensions) {
+                string pluginId = plugin.bundleIdentifier();
+                if (pluginId.startsWith(originalBundleId)) {
+                    plugin.bundleIdentifier = bundleId ~ pluginId[originalBundleId.length .. $];
+                }
+            }
+            appBundle.bundleIdentifier = bundleId;
+        }
 
         auto identity = new CertificateIdentity(config, account);
         if (identity.keyFile.length && exists(identity.keyFile)) chmod(identity.keyFile.toStringz(), 384u);
