@@ -280,7 +280,7 @@ app.get('/enroll/:token.mobileconfig', (req,res) => {
     res.send(data);
   } catch(e) { console.error('UDID profile generation failed:',e.message); res.status(500).send('Не удалось создать профиль.'); }
 });
-app.post('/api/udid/response/:token', express.raw({type:()=>true,limit:'256kb'}), async (req,res) => {
+app.post('/api/udid/response/:token', express.raw({type:()=>true,limit:'256kb'}), async function udidResponseHandler(req,res) {
   const token=req.params.token, session=enrollments.get(token);
   console.info('[UDID] device callback received; token:',String(token).slice(0,8),'content-type:',req.get('content-type')||'none','bytes:',Buffer.isBuffer(req.body)?req.body.length:0);
   if (!/^[a-f0-9]{64}$/.test(token) || !session || session.used || Date.now()-session.created>20*60*1000) return res.status(410).send('Enrollment expired');
