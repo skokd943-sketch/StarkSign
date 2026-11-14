@@ -1,7 +1,7 @@
 --- a/source/sideload/certificateidentity.d
 +++ b/source/sideload/certificateidentity.d
 @@ -2,6 +2,7 @@
-
+ 
  import std.algorithm.searching;
  import std.digest.sha;
 +import std.exception : enforce;
@@ -9,7 +9,7 @@
  import std.path;
  import std.uni;
 @@ -57,7 +58,9 @@
-
+ 
              log.debug_("Checking if any certificate online is matching the private key...");
              auto certificates = appleAccount.listAllDevelopmentCerts!iOS(team).unwrap();
 -            auto sideloaderCertificates = certificates.find!((cert) => cert.machineName == applicationName);
@@ -20,7 +20,6 @@
                  Vector!ubyte certContent;
                  Vector!ubyte ourPublicKey = privateKey.x509SubjectPublicKey();
 @@ -72,7 +75,17 @@
-
                      // +/
                  }
              }
