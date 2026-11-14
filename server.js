@@ -252,7 +252,7 @@ app.post('/api/udid/start', requireAccount, (req,res) => {
 
   // Reuse an active request from this device/IP instead of consuming another rate-limit slot.
   for (const [existingToken, existing] of enrollments) {
-    if (existing.clientIp === ip && !existing.used && now-existing.created < 20*60*1000) {
+    if (String(existing.userId) === String(req.account.id) && existing.clientIp === ip && !existing.used && now-existing.created < 20*60*1000) {
       const base = (process.env.PUBLIC_URL || ('https://' + req.get('host'))).replace(/\/+$/,'');
       return res.json({url:base+'/enroll/'+existingToken+'.mobileconfig',token:existingToken,expiresIn:Math.max(0,Math.floor((20*60*1000-(now-existing.created))/1000)),reused:true});
     }
@@ -280,7 +280,7 @@ app.get('/enroll/:token.mobileconfig', (req,res) => {
     res.send(data);
   } catch(e) { console.error('UDID profile generation failed:',e.message); res.status(500).send('Не удалось создать профиль.'); }
 });
-app.post('/api/udid/response/:token', express.raw({type:()=>true,limit:'256kb'}), (req,res) => {
+app.post('/api/udid/response/:token', express.raw({type:()=>true,limit:'256kb'}), async (req,res) => {
   const token=req.params.token, session=enrollments.get(token);
   console.info('[UDID] device callback received; token:',String(token).slice(0,8),'content-type:',req.get('content-type')||'none','bytes:',Buffer.isBuffer(req.body)?req.body.length:0);
   if (!/^[a-f0-9]{64}$/.test(token) || !session || session.used || Date.now()-session.created>20*60*1000) return res.status(410).send('Enrollment expired');
