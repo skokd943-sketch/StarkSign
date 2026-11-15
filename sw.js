@@ -1,5 +1,5 @@
-const CACHE_NAME = 'stark-sign-v11';
-const APP_SHELL = ['./', './index.html', './manifest.json', './icon-180.png', './icon-512.png'];
+const CACHE_NAME = 'stark-sign-v12';
+const APP_SHELL = ['./', './index.html', './install.html', './manifest.json', './icon-180.png', './icon-512.png'];
 
 self.addEventListener('install', event => {
   event.waitUntil(

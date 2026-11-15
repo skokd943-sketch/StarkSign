@@ -18,7 +18,7 @@ app.set('trust proxy', 1);
 app.use(express.json({limit:'32kb'}));
 app.use((req, res, next) => {
   res.set('Access-Control-Allow-Origin', ORIGIN);
-  res.set('Access-Control-Allow-Headers', 'x-key, content-type, cache-control');
+  res.set('Access-Control-Allow-Headers', 'x-key, content-type, cache-control, authorization');
   res.set('Access-Control-Max-Age', '600');
   res.set('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
   if (req.method === 'OPTIONS') return res.end();
@@ -29,6 +29,45 @@ const up = multer({ dest: UPLOADS, limits: { fileSize: 600 * 1024 * 1024 } });
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const okId = id => /^[a-f0-9]{16}$/.test(id);
 
+
+// ===== Аккаунты Stark Sign (файл на Railway Volume /data, пароли — scrypt) =====
+const ACC_FILE = process.env.ACCOUNTS_FILE || (fs.existsSync('/data') ? '/data/accounts.json' : path.join(ROOT, 'accounts.json'));
+let ACC = { users: {} };
+try { ACC = JSON.parse(fs.readFileSync(ACC_FILE, 'utf8')); ACC.users = ACC.users || {}; } catch (_) {}
+function accSave() { try { fs.mkdirSync(path.dirname(ACC_FILE), { recursive: true }); fs.writeFileSync(ACC_FILE + '.tmp', JSON.stringify(ACC)); fs.renameSync(ACC_FILE + '.tmp', ACC_FILE); } catch (e) { console.warn('[acc] save failed', e.message); } }
+const sha = s => crypto.createHash('sha256').update(s).digest('hex');
+const scrypt = (p, salt) => new Promise((ok, no) => crypto.scrypt(p, salt, 32, (e, k) => e ? no(e) : ok(k.toString('hex'))));
+const accTries = new Map();
+function accLimited(req) { const k = req.ip, now = Date.now(), a = (accTries.get(k) || []).filter(t => now - t < 600000); a.push(now); accTries.set(k, a); return a.length > 30; }
+const accView = u => ({ name: u.name, appleId: u.appleId || '', prefs: u.prefs || { theme: 'blue', anim: true }, apps: u.apps || [] });
+function accAuth(req) { const m = /^Bearer (.+)$/.exec(req.get('authorization') || ''); if (!m) return null; const h = sha(m[1]); for (const u of Object.values(ACC.users)) if ((u.tokens || []).includes(h)) return u; return null; }
+async function accIssue(u) { const t = crypto.randomBytes(32).toString('hex'); u.tokens = [...(u.tokens || []), sha(t)].slice(-20); accSave(); return t; }
+app.post('/api/acc/register', async (req, res) => {
+  if (accLimited(req)) return res.status(429).json({ error: 'Слишком много попыток, подожди' });
+  const name = String(req.body.name || '').trim().toLowerCase(), pass = String(req.body.password || '');
+  if (!/^[a-z0-9_]{3,20}$/.test(name)) return res.status(400).json({ error: 'Ник: 3–20 символов, латиница, цифры, _' });
+  if (pass.length < 6 || pass.length > 100) return res.status(400).json({ error: 'Пароль минимум 6 символов' });
+  if (ACC.users[name]) return res.status(409).json({ error: 'Такой ник уже занят' });
+  const salt = crypto.randomBytes(16).toString('hex');
+  const u = ACC.users[name] = { name, salt, hash: await scrypt(pass, salt), appleId: '', prefs: req.body.prefs || { theme: 'blue', anim: true }, apps: [], tokens: [] };
+  res.json({ token: await accIssue(u), user: accView(u) });
+});
+app.post('/api/acc/login', async (req, res) => {
+  if (accLimited(req)) return res.status(429).json({ error: 'Слишком много попыток, подожди' });
+  const name = String(req.body.name || '').trim().toLowerCase(), u = ACC.users[name];
+  if (!u || await scrypt(String(req.body.password || ''), u.salt) !== u.hash) return res.status(401).json({ error: 'Неверный ник или пароль' });
+  res.json({ token: await accIssue(u), user: accView(u) });
+});
+app.get('/api/acc/me', (req, res) => { const u = accAuth(req); if (!u) return res.sendStatus(401); res.set('Cache-Control', 'no-store').json({ user: accView(u) }); });
+app.post('/api/acc/save', (req, res) => {
+  const u = accAuth(req); if (!u) return res.sendStatus(401);
+  const b = req.body || {};
+  if (typeof b.appleId === 'string') u.appleId = b.appleId.slice(0, 120);
+  if (b.prefs && typeof b.prefs === 'object') u.prefs = { theme: String(b.prefs.theme || 'blue').slice(0, 12), anim: b.prefs.anim !== false };
+  if (Array.isArray(b.apps)) u.apps = b.apps.slice(0, 100).map(a => ({ id: String(a.id || '').slice(0, 40), name: String(a.name || '').slice(0, 80), ver: String(a.ver || '').slice(0, 30), date: String(a.date || '').slice(0, 30) }));
+  accSave(); res.json({ ok: true });
+});
+app.post('/api/acc/logout', (req, res) => { const u = accAuth(req); if (u) { const h = sha(req.get('authorization').slice(7)); u.tokens = u.tokens.filter(t => t !== h); accSave(); } res.json({ ok: true }); });
 app.get('/', (q, r) => r.send('Stark Sign server OK'));
 app.get('/api/health', (req,res) => res.set('Cache-Control','no-store').json({ok:true,service:'stark-sign',version:'2026.11.13'}));
 
@@ -89,6 +128,47 @@ app.get('/api/apps/:id/manifest.plist', (req, res) => {
   res.set('Cache-Control','no-store').type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict><key>items</key><array><dict><key>assets</key><array><dict><key>kind</key><string>software-package</string><key>url</key><string>${esc(ipaUrl)}</string></dict></array><key>metadata</key><dict><key>bundle-identifier</key><string>${esc(m.bundle)}</string><key>bundle-version</key><string>${esc(m.version)}</string><key>kind</key><string>software</string><key>title</key><string>${esc(m.name)}</string></dict></dict></array></dict></plist>`);
+});
+// AltStore/SideStore-совместимый источник: SideStore сам подписывает и ставит на устройстве.
+app.get('/api/source.json', (req, res) => {
+  const base = (process.env.PUBLIC_URL || ('https://' + req.get('host'))).replace(/\/+$/, '');
+  const stat = f => { try { return fs.statSync(path.join(CATALOG_DIR, f)); } catch (_) { return null; } };
+  const apps = catalogEntries().map(m => {
+    const st = stat(m.file);
+    return {
+      name: m.name,
+      bundleIdentifier: m.bundle,
+      developerName: 'Stark Sign',
+      subtitle: m.name,
+      localizedDescription: m.name + ' — из каталога Stark Sign',
+      iconURL: m.icon ? base + '/api/apps/' + m.id + '/icon.png' : base + '/icon-512.png',
+      tintColor: '2f7bff',
+      versions: [{
+        version: m.version,
+        date: (st ? st.mtime : new Date()).toISOString().slice(0, 10),
+        downloadURL: base + '/api/apps/' + m.id + '/download.ipa',
+        size: st ? st.size : 0,
+        minOSVersion: '14.0'
+      }],
+      // поля для старых версий AltStore/SideStore
+      version: m.version,
+      versionDate: (st ? st.mtime : new Date()).toISOString().slice(0, 10),
+      downloadURL: base + '/api/apps/' + m.id + '/download.ipa',
+      size: st ? st.size : 0,
+      screenshotURLs: []
+    };
+  });
+  res.set('Cache-Control', 'no-store').json({
+    name: 'Stark Sign',
+    identifier: 'app.starksign.source',
+    subtitle: 'Каталог приложений Stark Sign',
+    description: 'Приложения с сервера Stark Sign для установки через SideStore / AltStore.',
+    iconURL: base + '/icon-512.png',
+    website: base,
+    tintColor: '2f7bff',
+    apps,
+    news: []
+  });
 });
 app.get('/api/apps/:id/download.ipa', (req, res) => {
   const m = findCatalogApp(req.params.id);
