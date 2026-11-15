@@ -148,6 +148,11 @@ nav button{font-size:10.5px;gap:3px}nav button svg{width:24px;height:24px}
 .inst:active{transform:scale(.96)}
 .inst.sm{width:auto;min-height:38px;padding:0 18px;font-size:15px;border-radius:99px;flex:none}
 .cert>.inst.sm{margin-left:auto}
+
+a.btn{text-decoration:none;color:#fff;width:100%}
+a.btn#addSideStore{background:linear-gradient(135deg,#22c55e,#16a34a);box-shadow:0 8px 22px -10px #22c55e}
+.form input[type=file]{padding:8px;font-size:15px}
+.form input[type=file]::file-selector-button{border:0;border-radius:10px;padding:9px 14px;margin-right:10px;background:rgba(255,255,255,.14);color:#fff;font:600 14px inherit;font-family:inherit}
 </style>
 </head>
 <body>
@@ -155,7 +160,6 @@ nav button{font-size:10.5px;gap:3px}nav button svg{width:24px;height:24px}
 
 <section class="view on" id="v0">
   <h1 class="brand" aria-label="Stark Sign"><span class="st shine"></span> <span class="sg"></span></h1>
-  <a class="btn" href="install.html" style="background:linear-gradient(135deg,#22c55e,#16a34a);box-shadow:0 10px 26px -10px #22c55e;text-decoration:none;color:#fff;margin-bottom:16px;min-height:58px;font-size:18px">Установить приложения</a>
   <div class="card c-blue"><h2>Подпись IPA через Apple ID</h2><p>Подпиши IPA с бесплатным Apple ID. Подтверди UDID и введи код 2FA, если Apple его запросит.</p></div>
   <div class="card c-sky"><h2>Добавь на экран «Домой»</h2><p>Safari → «Поделиться» → «На экран Домой». Приложение откроется без адресной строки.</p></div>
   <div class="card c-dark"><div class="row"><div class="ico">S</div><div><b>Stark Sign</b><small>Версия 0.1 · бета</small></div><div class="pill">Бета</div></div></div>
@@ -169,11 +173,9 @@ nav button{font-size:10.5px;gap:3px}nav button svg{width:24px;height:24px}
     <button class="btn" id="sign">Подписать</button>
     <div class="bar" id="bar"><i></i></div>
   </div>
-  <p class="sub">На устройстве · подписанные</p>
+  <p class="sub">На устройстве · установленные</p>
   <div id="signed"></div>
   <p class="sub">На сервере <button class="mini" id="refreshApps">Обновить</button></p>
-  <div class="hint" id="sourceBox">Для бесплатного Apple ID: добавь этот каталог в SideStore или AltStore — они сами подпишут и поставят приложение.
-    <div style="margin-top:8px"><a class="mini" id="addSideStore" href="#">Добавить в SideStore</a> <a class="mini" id="addAltStore" href="#">Добавить в AltStore</a> <button class="mini" id="copySource">Копировать ссылку</button></div></div>
   <div id="serverApps"><p class="hint">Загрузка приложений…</p></div>
 </section>
 
@@ -212,16 +214,18 @@ nav button{font-size:10.5px;gap:3px}nav button svg{width:24px;height:24px}
     <button class="btn" id="altSign">Подписать через AltStore .p12</button>
     <div id="altStatus" class="hint"></div>
   </div>
+  <p class="sub">Source для установки</p>
+  <div class="form">
+    <p class="hint" style="margin:0">Для бесплатного Apple ID: подключи каталог Stark Sign как Source — приложение подпишет и поставит SideStore или AltStore.</p>
+    <a class="btn" id="addAltStore" href="#">Подключить в AltStore Source</a>
+    <a class="btn" id="addSideStore" href="#">Sideload для Source</a>
+    <button class="btn ghost" id="copySource">Копировать ссылку на Source</button>
+  </div>
 </section>
 
 <section class="view" id="v3">
   <h1>Настройки</h1>
-  <div class="form">
-    <div class="hint" id="serverStatus">Проверяю постоянный сервер…</div>
-    <label>Адрес сервера<input id="srv" placeholder="https://название.up.railway.app" autocapitalize="off" autocorrect="off"></label>
-    <label>Ключ доступа (если задан на сервере)<input id="key" type="password" autocomplete="off"></label>
-  </div>
-  <div class="set">
+    <div class="set">
     <button class="rowbtn" id="openProf"><span class="av" id="avSet">?</span><span id="profName">Профиль</span><em>Войти ›</em></button>
   </div>
   <div class="set">
@@ -282,9 +286,9 @@ document.querySelectorAll('.sw').forEach(s=>s.onclick=()=>s.classList.toggle('on
 const $=q=>document.querySelector(q);
 // Постоянный адрес Railway API. Проверяем сервер при запуске и возвращении в приложение.
 const DEFAULT_SERVER='https://stark-sign-server-production.up.railway.app';
-if(!localStorage.srv) localStorage.srv=DEFAULT_SERVER;
+localStorage.srv=DEFAULT_SERVER;localStorage.removeItem('accessKey');
 /* localStorage.key — это встроенный метод Storage, поэтому ключ доступа храним под другим именем */
-const getKey=()=>localStorage.getItem('accessKey')||localStorage.getItem('key')||'';
+const getKey=()=>'';
 localStorage.removeItem('starkAccountToken'); localStorage.removeItem('accountNick');
 function normalizeServer(value){
   const u=new URL(String(value||'').trim());
@@ -325,7 +329,7 @@ async function detectServer(force=false){
   })();
   try{return await serverCheckPromise}finally{serverCheckPromise=null}
 }
-const getServer=()=>normalizeServer(localStorage.srv||DEFAULT_SERVER);
+const getServer=()=>DEFAULT_SERVER;
 // запрет зума двумя пальцами и двойным тапом
 ['gesturestart','gesturechange','gestureend'].forEach(t=>document.addEventListener(t,e=>e.preventDefault()));
 document.addEventListener('touchmove',e=>{if(e.touches.length>1)e.preventDefault()},{passive:false});
@@ -509,8 +513,6 @@ setInterval(()=>{if(!document.hidden&&$('#v2').classList.contains('on'))loadRepo
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&$('#v2').classList.contains('on'))loadRepo()});
 const allCerts=()=>[...repoCerts,...mineCerts];
 function refreshSel(){const s=$('#certsel'),v=s.value;s.innerHTML=allCerts().map((c,i)=>`<option value="${i}">${esc(c.label)}</option>`).join('')||'<option value="">Нет сертификатов</option>';if(v)s.value=v}
-const srvIn=$('#srv'),keyIn=$('#key');srvIn.value=localStorage.srv||DEFAULT_SERVER;keyIn.value=getKey();
-srvIn.oninput=()=>localStorage.srv=srvIn.value.trim().replace(/\/+$/,'');keyIn.oninput=()=>localStorage.setItem('accessKey',keyIn.value.trim());
 const hist=()=>{try{return JSON.parse(localStorage.signed||'[]')}catch(e){return[]}};
 async function loadServerApps(){
   const box=$('#serverApps'),srv=getServer();
@@ -526,9 +528,9 @@ $('#refreshApps').onclick=loadServerApps;
 function setSourceLinks(){const u=getServer()+'/api/source.json',e=encodeURIComponent(u);
   $('#addSideStore').href='sidestore://source?url='+e;$('#addAltStore').href='altstore://source?url='+e;
   $('#copySource').onclick=async()=>{try{await navigator.clipboard.writeText(u);$('#copySource').textContent='Скопировано'}catch(_){prompt('Ссылка на источник',u)}};}
-setSourceLinks();srvIn.addEventListener('input',setSourceLinks);
+setSourceLinks();
 
-function showSigned(){$('#signed').innerHTML=hist().map(h=>`<div class="cert"><div class="ico">IPA</div><div><b>${esc(h.name)}</b><small>${esc(h.ver)} · ${esc(h.date)}</small></div><a class="inst sm" href="itms-services://?action=download-manifest&url=${h.srv}/api/manifest/${h.id}.plist">Установить</a></div>`).join('')||'<p class="hint">Подписанных приложений пока нет. Файлы на сервере хранятся 24 часа.</p>'}
+function showSigned(){$('#signed').innerHTML=hist().map(h=>`<div class="cert"><div class="ico">IPA</div><div><b>${esc(h.name)}</b><small>${esc(h.ver)} · ${esc(h.date)}</small></div><a class="inst sm" href="itms-services://?action=download-manifest&url=${h.srv}/api/manifest/${h.id}.plist">Установить</a></div>`).join('')||'<p class="hint">Установленных приложений пока нет. Файлы на сервере хранятся 24 часа.</p>'}
 $('#sign').onclick=async()=>{
   const srv=getServer();
   const f=$('#ipa').files[0];if(!f)return toast('Выбери файл .ipa');
