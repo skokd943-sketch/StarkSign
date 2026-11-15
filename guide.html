@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>White API — инструкции</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="theme.css">
+<script src="theme.js"></script>
+<style>
+.download-card{margin:20px 0;padding:24px}
+.download-card h2{margin:0 0 10px}
+.muted{color:var(--muted);line-height:1.6}
+.actions{display:flex;gap:12px;flex-wrap:wrap;margin:18px 0}
+.action-btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 16px;border-radius:10px;text-decoration:none}
+.cli-card{margin:20px 0;padding:24px}
+.cli-card h2{margin:0 0 10px}
+.cli-top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.os-switch{display:inline-flex;padding:3px;gap:2px;background:var(--seg);border-radius:10px}
+.os-switch button{border:none;background:transparent;font-size:13px;font-weight:600;color:var(--muted);padding:8px 16px;border-radius:8px;cursor:pointer}
+.os-switch button.active{background:var(--seg-on);color:var(--ink);box-shadow:0 1px 3px rgba(30,40,80,.12)}
+.cmd-box{display:flex;align-items:center;gap:10px;background:var(--field);border:1px solid var(--line);border-radius:12px;padding:10px 10px 10px 16px}
+.cmd-box code{flex:1;font-family:var(--mono);font-size:13.5px;color:var(--ink);overflow-x:auto;white-space:nowrap;padding:6px 0}
+.cmd-box button{flex:none}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
+.chip{font-size:12.5px;font-weight:600;padding:5px 12px;border-radius:999px;background:var(--seg);color:var(--ink2)}
+.vals{display:grid;gap:10px;margin:16px 0}
+.val-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.val-label{width:130px;flex:none;font-size:12.5px;font-weight:700;color:var(--muted)}
+.val-row .cmd-box{flex:1;min-width:220px}
+.mchips{display:flex;gap:8px;flex-wrap:wrap}
+.mchips button{cursor:pointer;border:1px solid var(--line);font-family:var(--mono)}
+.mchips button:hover{border-color:var(--hover)}
+.app-d{border:1px solid var(--line);border-radius:12px;padding:0 16px;margin-top:10px;background:var(--field)}
+.app-d summary{cursor:pointer;padding:14px 0;font-weight:700;list-style:none}
+.app-d summary::-webkit-details-marker{display:none}
+.app-d summary::after{content:'+';float:right;color:var(--muted)}
+.app-d[open] summary::after{content:'−'}
+.app-d ol{padding:0 0 12px 20px;line-height:1.75;color:var(--body)}
+.app-d .note{margin:0 0 14px;font-size:13px;color:var(--muted);line-height:1.5}
+@media(max-width:600px){.val-label{width:100%}}
+.steps{padding-left:22px;line-height:1.8}
+html[data-theme="dark"] .download-card,html[data-theme="starry"] .download-card{background:var(--card)!important}
+</style>
+</head>
+<body>
+<header class="site"><div class="container">
+<a class="brand" href="cabinet.html"><span class="brand-mark">W</span>White API</a>
+<div class="head-right"><div class="lang" role="group" aria-label="Language">
+<button type="button" id="langRu">RU</button><button type="button" id="langEn">EN</button>
+</div><a class="plain" href="cabinet.html" id="back">← В кабинет</a></div>
+</div></header>
+<main class="page"><div class="container">
+<div class="eyebrow" id="eyebrow">Приложение</div>
+<h1 id="heading">Инструкции White API</h1>
+<p class="sub" id="intro">Выбери программу для подключения к White API.</p>
+<section class="card download-card">
+<h2 id="pcTitle">White Code для ПК (Windows)</h2>
+<p class="muted" id="pcText">Программа-агент для работы с файлами и командами на компьютере. Скачай, запусти и вставь свой ключ white_api_…</p>
+<a class="btn-dark" id="pcLink" href="/WhiteCode.exe" download style="margin:6px 0 14px;display:inline-flex">Скачать WhiteCode.exe</a>
+</section>
+<section class="card download-card">
+<h2 id="phoneTitle">Телефон (iPhone и Android)</h2>
+<p class="muted" id="phoneText">White API устанавливается как веб-приложение — App Store и Google Play не нужны.</p>
+<a class="btn-dark" id="phoneLink" href="/app/" target="_blank" rel="noopener" style="margin:6px 0 14px;display:inline-flex">Открыть White API на телефоне</a>
+
+<p class="muted" id="instructionsTitle">После открытия страницы в браузере:</p>
+<ol class="steps" id="steps">
+<li>iPhone: открой страницу в Safari, нажми «Поделиться» и выбери «На экран „Домой“», затем «Добавить».</li>
+<li>Android: открой страницу в Chrome, нажми меню ⋮ и выбери «Установить приложение» или «Добавить на главный экран».</li>
+</ol>
+</section>
+<section class="card cli-card">
+<div class="cli-top"><h2 id="cliTitle">Установка в CLI</h2>
+<div class="os-switch" role="group" aria-label="OS"><button type="button" id="osMac">Mac / Linux</button><button type="button" id="osWin">Windows</button></div></div>
+<div class="chips"><span class="chip">Claude Code</span><span class="chip">Codex</span><span class="chip">OpenCode</span><span class="chip">Aider</span></div>
+<p class="muted" id="cliText">Открой терминал, вставь команду и нажми Enter. Скрипт попросит ключ, выберет доступные тебе модели и сам всё настроит.</p>
+<div class="cmd-box"><code id="cliCmd"></code><button type="button" class="btn-dark" id="cliCopy">Копировать</button></div>
+<p class="muted" id="cliHint" style="margin-top:12px;font-size:13px"></p>
+<ol class="steps" id="cliSteps"></ol>
+</section>
+<section class="card cli-card" id="manual">
+<h2 id="manTitle"></h2>
+<div class="chips"><span class="chip">Chatbox</span><span class="chip">Cursor</span><span class="chip">Cline</span><span class="chip">Cherry Studio</span></div>
+<p class="muted" id="manText"></p>
+<div class="vals" id="vals"></div>
+<div id="apps"></div>
+</section>
+</div></main>
+<footer class="site"><div class="container"><span>© 2026 White API · <a href="https://t.me/CTPAX_SPLIT" target="_blank" rel="noopener" style="color:inherit">Telegram @CTPAX_SPLIT</a> · <a href="mailto:whiteapiofficial@mail.ru" style="color:inherit">whiteapiofficial@mail.ru</a></span><span id="secure">Установка на телефон не требует App Store или Google Play.</span></div></footer>
+<script>
+const copy={
+ru:{back:'← В кабинет',eyebrow:'Приложение',heading:'Инструкции White API',pcTitle:'White Code для ПК (Windows)',pcText:'Программа-агент для работы с файлами и командами на компьютере. Скачай, запусти и вставь свой ключ white_api_…',pcLink:'Скачать WhiteCode.exe',intro:'Выбери программу для подключения к White API.',phoneTitle:'Телефон (iPhone и Android)',phoneText:'White API устанавливается как веб-приложение — App Store и Google Play не нужны.',phoneLink:'Открыть White API на телефоне',instructionsTitle:'После открытия страницы в браузере:',ios:'iPhone: открой страницу в Safari, нажми «Поделиться» и выбери «На экран „Домой“», затем «Добавить».',android:'Android: открой страницу в Chrome, нажми меню ⋮ и выбери «Установить приложение» или «Добавить на главный экран».',secure:'Установка на телефон не требует App Store или Google Play.',cliTitle:'Установка в CLI',cliText:'Открой терминал, вставь команду и нажми Enter. Скрипт попросит ключ, покажет доступные тебе модели и сам всё настроит.',copy:'Копировать',copied:'Скопировано ✓',hintMac:'Терминал: Mac — Spotlight → «Терминал»; Linux — Ctrl+Alt+T.',hintWin:'Открой PowerShell: Пуск → «PowerShell». Команду вставляй именно туда, не в cmd.',cliSteps:['Вставь команду в терминал и нажми Enter.','Вставь свой ключ white_api_… (при вводе он не отображается).','Выбери приложение: Claude Code, Codex, OpenCode, Aider или все сразу.','Выбери модель. Закрой терминал, открой заново и запусти claude / codex / opencode / aider.']},
+en:{back:'← Back to account',eyebrow:'App',heading:'White API instructions',pcTitle:'White Code for PC (Windows)',pcText:'An agent app for working with files and commands on your computer. Download, run and paste your white_api_… key.',pcLink:'Download WhiteCode.exe',intro:'Choose a client to connect to White API.',phoneTitle:'Phone (iPhone and Android)',phoneText:'White API installs as a web app — no App Store or Google Play required.',phoneLink:'Open White API on phone',instructionsTitle:'After opening the page in your browser:',ios:'iPhone: open the page in Safari, tap Share, choose Add to Home Screen, then tap Add.',android:'Android: open the page in Chrome, tap the ⋮ menu, then choose Install app or Add to Home screen.',secure:'Phone installation does not require App Store or Google Play.',cliTitle:'CLI install',cliText:'Open a terminal, paste the command and press Enter. The script asks for your key, lists the models you can use and configures everything.',copy:'Copy',copied:'Copied ✓',hintMac:'Terminal: Mac — Spotlight → Terminal; Linux — Ctrl+Alt+T.',hintWin:'Open PowerShell: Start → PowerShell. Paste the command there, not into cmd.',cliSteps:['Paste the command into the terminal and press Enter.','Paste your white_api_… key (it is not shown while typing).','Pick the app: Claude Code, Codex, OpenCode, Aider or all.','Pick a model. Close the terminal, reopen it and run claude / codex / opencode / aider.']}
+};
+function setLang(lang){const d=copy[lang];document.documentElement.lang=lang;for(const id of ['back','eyebrow','heading','intro','pcTitle','pcText','pcLink','phoneTitle','phoneText','phoneLink','instructionsTitle','secure','cliTitle','cliText']){const el=document.getElementById(id);if(el)el.textContent=d[id]};document.getElementById('steps').innerHTML='<li>'+d.ios+'</li><li>'+d.android+'</li>';renderCli();renderManual();document.getElementById('langRu').classList.toggle('active',lang==='ru');document.getElementById('langEn').classList.toggle('active',lang==='en');try{localStorage.setItem('white_lang',lang)}catch{}}
+
+let os=/Win/i.test(navigator.userAgent)?'win':'mac';
+const CMD={mac:()=>'curl -fsSL '+location.origin+'/install.sh | bash',win:()=>'irm '+location.origin+'/install.ps1 | iex'};
+function renderCli(){const d=copy[document.documentElement.lang]||copy.ru;
+document.getElementById('cliCmd').textContent=CMD[os]();
+document.getElementById('cliHint').textContent=os==='win'?d.hintWin:d.hintMac;
+document.getElementById('cliSteps').innerHTML=d.cliSteps.map(t=>'<li>'+t+'</li>').join('');
+document.getElementById('cliCopy').textContent=d.copy;
+document.getElementById('osMac').classList.toggle('active',os==='mac');document.getElementById('osWin').classList.toggle('active',os==='win');}
+document.getElementById('osMac').addEventListener('click',()=>{os='mac';renderCli()});
+document.getElementById('osWin').addEventListener('click',()=>{os='win';renderCli()});
+document.getElementById('cliCopy').addEventListener('click',async()=>{const d=copy[document.documentElement.lang]||copy.ru,b=document.getElementById('cliCopy');
+try{await navigator.clipboard.writeText(CMD[os]())}catch{const r=document.createRange();r.selectNodeContents(document.getElementById('cliCmd'));const s=getSelection();s.removeAllRanges();s.addRange(r);document.execCommand('copy')}
+b.textContent=d.copied;setTimeout(()=>b.textContent=d.copy,1800)});
+
+const man={
+ru:{title:'Приложения с ручной настройкой',text:'Эти программы настраиваются в своём окне настроек, автоматически не получится. Скопируй значения ниже и вставь по шагам. Названия пунктов могут немного отличаться в разных версиях.',base:'Base URL (с /v1)',host:'Адрес без /v1',key:'API-ключ',keyVal:'white_api_… из личного кабинета',model:'ID модели (нажми, чтобы скопировать)',
+apps:[
+{n:'Chatbox',note:'',s:['Настройки → Провайдер модели → Добавить своего провайдера.','Режим API: «OpenAI API Compatible».','API Host: адрес без /v1. API Path: /v1/chat/completions (если поле есть). Если в твоей версии одно поле «API Host», вставь Base URL с /v1.','Вставь API-ключ, добавь модель по ID и нажми «Сохранить».']},
+{n:'Cursor',note:'Cursor отправляет запросы через свои серверы. Для чата (Ask) обычно работает, но Agent и Tab со своим ключом могут не работать, это ограничение Cursor.',s:['Settings → Models.','Включи «OpenAI API Key» и вставь ключ.','Включи «Override OpenAI Base URL» и вставь Base URL (с /v1).','Add Model → впиши ID модели → Verify.']},
+{n:'Cline (VS Code)',note:'',s:['Открой Cline в VS Code → значок шестерёнки.','API Provider: «OpenAI Compatible».','Base URL (с /v1), API Key, Model ID.']},
+{n:'Cherry Studio',note:'',s:['Настройки → Провайдеры → Добавить, тип «OpenAI».','API-адрес: Base URL (с /v1), API-ключ.','Нажми «Управление» → добавь модель по ID → включи провайдер.']}
+]},
+en:{title:'Manual setup apps',text:'These apps are configured in their own settings window and cannot be set up automatically. Copy the values below and follow the steps. Menu names may differ slightly between versions.',base:'Base URL (with /v1)',host:'Host without /v1',key:'API key',keyVal:'white_api_… from your account',model:'Model ID (click to copy)',
+apps:[
+{n:'Chatbox',note:'',s:['Settings → Model Provider → Add custom provider.','API mode: “OpenAI API Compatible”.','API Host: the host without /v1. API Path: /v1/chat/completions (if shown). If your version has a single “API Host” field, paste the Base URL with /v1.','Paste the API key, add a model by ID and Save.']},
+{n:'Cursor',note:'Cursor sends requests through its own servers. Chat (Ask) usually works, but Agent and Tab with a custom key may not; that is a Cursor limitation.',s:['Settings → Models.','Enable “OpenAI API Key” and paste the key.','Enable “Override OpenAI Base URL” and paste the Base URL (with /v1).','Add Model → enter the model ID → Verify.']},
+{n:'Cline (VS Code)',note:'',s:['Open Cline in VS Code → gear icon.','API Provider: “OpenAI Compatible”.','Base URL (with /v1), API Key, Model ID.']},
+{n:'Cherry Studio',note:'',s:['Settings → Providers → Add, type “OpenAI”.','API address: the Base URL (with /v1), plus the API key.','Click “Manage” → add a model by ID → enable the provider.']}
+]}};
+let modelIds=[];
+fetch('/api/config').then(r=>r.json()).then(j=>{modelIds=(j.models||[]).map(m=>m.id);renderManual()}).catch(()=>{});
+function flash(b,t0,t1){b.textContent=t1;setTimeout(()=>b.textContent=t0,1500)}
+function copyTo(text,b,t0,t1){(navigator.clipboard?navigator.clipboard.writeText(text):Promise.reject()).catch(()=>{const t=document.createElement('textarea');t.value=text;document.body.appendChild(t);t.select();document.execCommand('copy');t.remove()}).finally(()=>flash(b,t0,t1))}
+function renderManual(){const L=document.documentElement.lang==='en'?'en':'ru',m=man[L],c=copy[L];
+document.getElementById('manTitle').textContent=m.title;document.getElementById('manText').textContent=m.text;
+const rows=[[m.base,location.origin+'/v1',1],[m.host,location.origin,1],[m.key,m.keyVal,0]];
+const v=document.getElementById('vals');v.innerHTML='';
+rows.forEach(([l,val,cp])=>{const r=document.createElement('div');r.className='val-row';r.innerHTML='<span class="val-label"></span><div class="cmd-box"><code></code></div>';r.querySelector('.val-label').textContent=l;r.querySelector('code').textContent=val;
+if(cp){const b=document.createElement('button');b.type='button';b.className='btn-dark';b.textContent=c.copy;b.onclick=()=>copyTo(val,b,c.copy,c.copied);r.querySelector('.cmd-box').appendChild(b)}v.appendChild(r)});
+if(modelIds.length){const r=document.createElement('div');r.className='val-row';r.innerHTML='<span class="val-label"></span><div class="mchips"></div>';r.querySelector('.val-label').textContent=m.model;
+modelIds.forEach(id=>{const b=document.createElement('button');b.type='button';b.className='chip';b.textContent=id;b.onclick=()=>copyTo(id,b,id,'✓');r.querySelector('.mchips').appendChild(b)});v.appendChild(r)}
+const a=document.getElementById('apps');a.innerHTML='';
+m.apps.forEach(x=>{const d=document.createElement('details');d.className='app-d';const sm=document.createElement('summary');sm.textContent=x.n;d.appendChild(sm);
+if(x.note){const p=document.createElement('p');p.className='note';p.textContent=x.note;d.appendChild(p)}
+const ol=document.createElement('ol');x.s.forEach(t=>{const li=document.createElement('li');li.textContent=t;ol.appendChild(li)});d.appendChild(ol);a.appendChild(d)})}
+document.getElementById('langRu').addEventListener('click',()=>setLang('ru'));document.getElementById('langEn').addEventListener('click',()=>setLang('en'));let lang='ru';try{lang=localStorage.getItem('white_lang')||'ru'}catch{}setLang(lang==='en'?'en':'ru');
+</script>
+</body></html>

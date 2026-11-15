@@ -1,598 +1,400 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="utf-8">
-<title>Stark Sign</title>
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#141416">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Stark Sign">
-<link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icon-180.png">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>White API — AI API за минуту</title>
+<meta name="description" content="Введите код доступа, полученный после покупки. Мы подготовим кабинет, ключ и баланс автоматически.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%23151a2a'/%3E%3Ctext x='16' y='23' font-size='20' font-weight='800' text-anchor='middle' fill='white' font-family='Arial'%3EW%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root{
-  --bg:#141416; --blue:#1f23ff; --sky:#4fb8ff; --card:#1f1f24; --text:#fff; --dim:rgba(255,255,255,.62);
-  --ease:cubic-bezier(.2,.9,.25,1.1);
-}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body,.view{touch-action:pan-y;-webkit-text-size-adjust:100%}
-button,a,input,select{touch-action:manipulation}button,a,.sw{cursor:pointer}button:disabled{cursor:wait}
-html,body{margin:0;height:100%;background:var(--bg);color:var(--text);
-  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Inter",system-ui,sans-serif;overscroll-behavior:none}
-body{overflow:hidden}
-.glow{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:hidden;z-index:0}
-.glow i{position:absolute;border-radius:50%;filter:blur(70px);opacity:.5;animation:drift 14s ease-in-out infinite alternate}
-.glow i:nth-child(1){width:300px;height:300px;background:var(--blue);top:-80px;left:-90px}
-.glow i:nth-child(2){width:260px;height:260px;background:var(--sky);bottom:120px;right:-110px;animation-duration:18s;opacity:.32}
-@keyframes drift{to{transform:translate(60px,90px) scale(1.25)}}
-.view{position:fixed;top:0;left:0;width:100%;height:100%;overflow-y:auto;z-index:1;padding:calc(env(safe-area-inset-top,0px) + 54px) 18px 130px;
-  opacity:0;transform:translateY(24px) scale(.98);pointer-events:none;transition:opacity .45s var(--ease),transform .55s var(--ease)}
-.view.on{opacity:1;transform:none;pointer-events:auto}
-h1{font-size:44px;line-height:1.05;margin:8px 0 22px;font-weight:800;letter-spacing:-1.2px}
-.brand .st{color:var(--blue)} .brand .sg{color:var(--sky)}
-.brand span span{display:inline-block;animation:letter 1s var(--ease) both;animation-delay:calc(var(--i)*70ms)}
-@keyframes letter{from{opacity:0;transform:translateY(34px) rotate(8deg) scale(.7);filter:blur(8px)}}
-.shine{background:linear-gradient(100deg,var(--blue) 30%,#8fd4ff 48%,var(--sky) 52%,var(--blue) 70%);background-size:250% 100%;
-  -webkit-background-clip:text;background-clip:text}
-.card{border-radius:36px;padding:28px 26px;margin-bottom:18px;position:relative;overflow:hidden;
-  transition:transform .35s var(--ease)}
-.card:active{transform:scale(.97)}
-.card h2{margin:0 0 10px;font-size:26px;line-height:1.15;letter-spacing:-.5px}
-.card p{margin:0;color:var(--dim);font-size:17px;line-height:1.4}
-.c-blue{background:linear-gradient(135deg,#1217ff,#2b3dff);animation:pulse 5s ease-in-out infinite}
-@keyframes pulse{50%{box-shadow:0 0 50px rgba(31,35,255,.55)}}
-.c-sky{background:linear-gradient(160deg,#1f6fff,#4fb8ff 70%,#8fd8ff);min-height:230px}
-.c-sky::after{content:"";position:absolute;inset:-40%;pointer-events:none;
-  background:conic-gradient(from 0deg,transparent,rgba(255,255,255,.28),transparent 30%);animation:spin 7s linear infinite}
-.c-sky>*{position:relative;z-index:1}
-@keyframes spin{to{transform:rotate(1turn)}}
-.c-dark{background:var(--card)}
-.row{display:flex;align-items:center;gap:14px}
-.ico{width:60px;height:60px;border-radius:16px;flex:none;background:linear-gradient(160deg,var(--blue),var(--sky));
-  display:grid;place-items:center;font-weight:800;font-size:26px}
-.row b{display:block;font-size:19px}.row small{color:var(--dim);font-size:14px}
-.pill{margin-left:auto;background:rgba(79,184,255,.16);color:var(--sky);font-weight:700;padding:8px 16px;border-radius:99px;font-size:15px}
-.set{background:var(--card);border-radius:26px;overflow:hidden;margin-bottom:18px}
-.set div{display:flex;justify-content:space-between;align-items:center;padding:17px 20px;font-size:17px}
-.set div+div{border-top:1px solid rgba(255,255,255,.07)}
-.set em{font-style:normal;color:var(--dim)}
-.sw{width:50px;height:30px;border-radius:99px;background:#3a3a40;position:relative;transition:background .3s;cursor:pointer}
-.sw::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:transform .35s var(--ease)}
-.sw.on{background:var(--blue)} .sw.on::after{transform:translateX(20px)}
-.empty{text-align:center;color:var(--dim);margin-top:70px;font-size:17px;line-height:1.45}
-.empty .ring{width:92px;height:92px;margin:0 auto 20px;border-radius:50%;border:4px solid var(--blue);border-top-color:var(--sky);animation:spin 1.6s linear infinite}
-/* tab bar */
-nav{position:fixed;z-index:5;left:14px;right:14px;bottom:max(8px,calc(env(safe-area-inset-bottom,0px) - 20px));height:78px;border-radius:40px;
-  background:rgba(40,36,70,.55);backdrop-filter:blur(26px) saturate(1.6);-webkit-backdrop-filter:blur(26px) saturate(1.6);
-  border:1px solid rgba(255,255,255,.12);display:flex;padding:7px}
-nav .bub{position:absolute;top:7px;bottom:7px;left:7px;width:calc((100% - 14px)/4);border-radius:34px;
-  background:rgba(255,255,255,.14);transition:transform .55s var(--ease)}
-nav button{flex:1;position:relative;z-index:1;background:none;border:0;color:#fff;font-weight:600;font-size:11.5px;font-family:inherit;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;transition:color .3s}
-nav button svg{width:28px;height:28px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:transform .5s var(--ease)}
-nav button.on{color:var(--sky)} nav button.on svg{transform:translateY(-2px) scale(1.12)}
+  :root {
+    --bg: #f7f8fc; --ink: #151a2a; --muted: #6b7488; --soft: #8b93a7;
+    --line: #e6e9f1; --field: #f2f4f9; --card: #ffffff;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    display: flex; flex-direction: column; min-height: 100vh;
+  }
+  .container { width: 100%; max-width: 1136px; margin: 0 auto; padding: 0 20px; }
 
-.sub{display:flex;justify-content:space-between;align-items:center;margin:26px 4px 12px;font-size:20px;font-weight:700}
-.sub:first-of-type{margin-top:0}
-.cert{background:var(--card);border-radius:26px;padding:16px;margin-bottom:12px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-.cert .ico{font-size:18px}.cert>div:nth-child(2){flex:1;min-width:120px;word-break:break-all}
-.cert b{font-size:17px}.cert small{display:block;color:var(--dim);font-size:13px;margin-top:3px;word-break:break-word}
-.mini{background:rgba(79,184,255,.16);color:var(--sky);border:0;font:600 14px inherit;font-family:inherit;padding:8px 14px;border-radius:99px;text-decoration:none}
-.mini+.mini{margin-left:6px}
-.app-tile{display:flex;align-items:center;gap:12px;background:var(--card);border-radius:20px;padding:12px;margin:8px 0}
-.app-tile img,.app-placeholder{width:52px;height:52px;border-radius:13px;object-fit:cover;background:#303039;flex:none}
-.app-placeholder{display:grid;place-items:center;font-weight:800;color:#9bdcff}
-.app-tile .app-info{min-width:0;flex:1}.app-tile b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.app-tile small{display:block;color:var(--dim);font-size:12px;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.app-tile .mini{white-space:nowrap}
-.bar{height:6px;border-radius:9px;background:#2a2a31;overflow:hidden;display:none}.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--blue),var(--sky));transition:width .3s}
-.btn:disabled{opacity:.6}
-.hint{color:var(--dim);font-size:15px;margin:4px 6px 12px;line-height:1.4}
-.form{background:var(--card);border-radius:26px;padding:16px;display:grid;gap:10px;margin-bottom:12px}
-.form label{font-size:13px;color:var(--dim);display:grid;gap:6px}
-.form input,.form select{width:100%;background:#2a2a31;border:0;border-radius:14px;padding:13px;color:#fff;font:16px inherit;font-family:inherit}
-.btn{background:linear-gradient(135deg,var(--blue),#3a8bff);color:#fff;border:0;border-radius:16px;padding:14px;font:700 17px inherit;font-family:inherit;transition:transform .3s var(--ease)}
-.btn:active{transform:scale(.96)}
-#toast{position:fixed;z-index:9;left:50%;top:calc(env(safe-area-inset-top,0px) + 14px);transform:translate(-50%,-90px);background:rgba(40,40,60,.9);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);padding:13px 20px;border-radius:99px;font-weight:600;transition:transform .5s var(--ease);max-width:90%;text-align:center}
-#toast.on{transform:translate(-50%,0)}
-@media (prefers-reduced-motion:reduce){*{animation:none!important;transition-duration:.01s!important}}
+  /* header */
+  header .container { height: 78px; display: flex; align-items: center; border-bottom: 1px solid var(--line); padding: 0; }
+  header { padding: 0 20px; }
+  .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--ink); font-weight: 700; font-size: 18px; letter-spacing: -.02em; }
+  .brand-mark {
+    width: 32px; height: 32px; border-radius: 9px; background: var(--ink); color: #fff;
+    display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 18px; letter-spacing: -.04em;
+  }
 
-/* ===== Stark Sign v2 design layer ===== */
-[hidden]{display:none!important}
-:root{--card:rgba(255,255,255,.065);--line:rgba(255,255,255,.09);--r:22px}
-html[data-theme=violet]{--blue:#7a35ff;--sky:#c58bff}
-html[data-theme=green]{--blue:#0ea35a;--sky:#5af0a0}
-html[data-theme=orange]{--blue:#ff6a1a;--sky:#ffc16b}
-html[data-theme=pink]{--blue:#e6246f;--sky:#ff8fb8}
-body.noanim *{animation:none!important;transition-duration:.01s!important}
-h1{font-size:36px;letter-spacing:-1px;margin:6px 4px 20px}
-.card{border-radius:28px;padding:24px;border:1px solid var(--line)}
-.card h2{font-size:22px}.card p{font-size:15.5px}
-.c-blue{background:linear-gradient(135deg,color-mix(in srgb,var(--blue) 92%,#000),color-mix(in srgb,var(--blue) 60%,var(--sky)))}
-.c-sky{background:linear-gradient(160deg,color-mix(in srgb,var(--blue) 70%,var(--sky)),var(--sky));min-height:170px}
-.c-dark,.set,.form,.cert,.app-tile{background:var(--card);border:1px solid var(--line);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
-.set,.form,.cert{border-radius:var(--r)}.app-tile{border-radius:18px}
-.ico{border-radius:15px;background:linear-gradient(160deg,var(--blue),var(--sky))}
-.btn{display:flex;align-items:center;justify-content:center;gap:8px;min-height:50px;border-radius:15px;font-size:16px;
-  background:linear-gradient(135deg,var(--blue),color-mix(in srgb,var(--blue) 55%,var(--sky)));box-shadow:0 8px 22px -10px var(--blue)}
-.btn.ghost{background:rgba(255,255,255,.09);box-shadow:none;color:var(--text)}
-.btn.apple{background:#fff;color:#000;box-shadow:none}.btn svg{width:19px;height:19px;fill:currentColor}
-.mini{display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:0 15px;line-height:1;white-space:nowrap;
-  background:color-mix(in srgb,var(--sky) 20%,transparent);color:var(--sky)}
-.form input,.form select{background:rgba(255,255,255,.08);border:1px solid transparent;border-radius:13px;min-height:46px;outline:0;transition:border-color .25s}
-.form input:focus,.form select:focus{border-color:var(--sky)}
-.sw.on{background:var(--blue)}
-nav{height:70px;border-radius:35px;background:rgba(30,30,40,.6)}
-nav .bub{border-radius:29px;background:color-mix(in srgb,var(--blue) 35%,transparent)}
-nav button{font-size:10.5px;gap:3px}nav button svg{width:24px;height:24px}
-.rowbtn{display:flex;align-items:center;gap:12px;width:100%;padding:16px 18px;background:none;border:0;color:var(--text);font:600 17px inherit;font-family:inherit;text-align:left}
-.rowbtn .av{width:38px;height:38px;border-radius:50%;background:linear-gradient(160deg,var(--blue),var(--sky));display:grid;place-items:center;font-weight:800}
-.rowbtn em{margin-left:auto;color:var(--dim);font-style:normal}
-.themes{display:flex;gap:12px;padding:6px 0}.themes i{width:34px;height:34px;border-radius:50%;border:3px solid transparent;cursor:pointer;transition:transform .3s var(--ease)}
-.themes i.on{border-color:#fff;transform:scale(1.12)}
-#prof{position:fixed;inset:0;z-index:8;background:rgba(14,14,18,.88);backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);overflow-y:auto;
-  padding:calc(env(safe-area-inset-top,0px) + 18px) 18px 60px;transform:translateY(100%);transition:transform .55s var(--ease)}
-#prof.on{transform:none}
-#prof .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
-#prof .big{width:84px;height:84px;margin:6px auto 10px;border-radius:50%;background:linear-gradient(160deg,var(--blue),var(--sky));display:grid;place-items:center;font-size:36px;font-weight:800}
-#prof .nm{text-align:center;font-size:22px;font-weight:800;margin-bottom:18px}
-.seg{display:flex;background:rgba(255,255,255,.08);border-radius:14px;padding:4px;margin-bottom:12px}
-.seg button{flex:1;border:0;background:none;color:var(--dim);font:600 15px inherit;font-family:inherit;padding:10px;border-radius:11px}
-.seg button.on{background:rgba(255,255,255,.14);color:#fff}
-.warn{background:rgba(255,190,60,.12);border:1px solid rgba(255,190,60,.35);color:#ffd27a;border-radius:16px;padding:12px 14px;font-size:14px;line-height:1.4}
+  .lang { margin-left: auto; display: inline-flex; padding: 3px; gap: 2px; background: #eceff6; border-radius: 10px; }
+  .lang button { border: none; background: transparent; font: inherit; font-size: 12.5px; font-weight: 600; color: var(--muted); padding: 6px 12px; border-radius: 8px; cursor: pointer; transition: background .15s, color .15s; }
+  .lang button.active { background: #fff; color: var(--ink); box-shadow: 0 1px 3px rgba(30,40,80,.12); }
+  .lang button:not(.active):hover { color: var(--ink); }
 
-.inst{display:flex;align-items:center;justify-content:center;min-height:50px;width:100%;border-radius:15px;text-decoration:none;color:#fff;font:700 17px inherit;font-family:inherit;
-  background:linear-gradient(135deg,#22c55e,#16a34a);box-shadow:0 8px 22px -10px #22c55e;transition:transform .3s var(--ease)}
-.inst:active{transform:scale(.96)}
-.inst.sm{width:auto;min-height:38px;padding:0 18px;font-size:15px;border-radius:99px;flex:none}
-.cert>.inst.sm{margin-left:auto}
+  /* hero */
+  main { flex: 1; display: flex; align-items: center; justify-content: center; padding: 40px 20px 90px; }
+  .hero { text-align: center; width: 100%; max-width: 640px; }
+  .eyebrow { font-size: 11.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+  h1 { margin-top: 30px; font-size: clamp(44px, 8vw, 72px); font-weight: 500; letter-spacing: -.055em; line-height: 1.05; color: var(--ink); }
+  h1 span { color: #7a869c; }
+  .lead { margin: 26px auto 0; max-width: 460px; font-size: 17px; line-height: 1.7; color: var(--muted); }
 
-a.btn{text-decoration:none;color:#fff;width:100%}
-a.btn#addSideStore{background:linear-gradient(135deg,#22c55e,#16a34a);box-shadow:0 8px 22px -10px #22c55e}
-.form input[type=file]{padding:8px;font-size:15px}
-.form input[type=file]::file-selector-button{border:0;border-radius:10px;padding:9px 14px;margin-right:10px;background:rgba(255,255,255,.14);color:#fff;font:600 14px inherit;font-family:inherit}
+  /* access card */
+  .access {
+    margin: 46px auto 0; max-width: 560px; background: var(--card); text-align: left;
+    border: 1px solid var(--line); border-radius: 20px; padding: 16px 18px 18px;
+    box-shadow: 0 30px 70px -28px rgba(30, 40, 80, .18), 0 2px 8px rgba(30, 40, 80, .03);
+  }
+  .access label { display: block; font-size: 11.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 4px 0 12px; }
+  .access .row { display: flex; gap: 10px; }
+  .access input {
+    flex: 1; min-width: 0; height: 48px; border: 1px solid transparent; border-radius: 12px; background: var(--field);
+    padding: 0 16px; font: inherit; font-size: 16px; font-weight: 500; letter-spacing: .02em; color: var(--ink); outline: none;
+    transition: border-color .15s, background .15s;
+  }
+  .access input::placeholder { color: #a6aec0; }
+  .access input:focus { background: #fff; border-color: #cfd5e4; }
+  .access button {
+    height: 48px; padding: 0 21px; border: none; border-radius: 12px; background: var(--ink); color: #fff;
+    font: inherit; font-size: 15px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: opacity .15s, transform .1s;
+  }
+  .access button:hover { opacity: .9; }
+  .access button:active { transform: scale(.98); }
+  .access button:disabled { opacity: .6; cursor: default; }
+  .msg { display: none; margin-top: 12px; font-size: 13.5px; color: #d93a4b; }
+  .msg.show { display: block; }
+
+  /* clients */
+  .clients-title { margin-top: 62px; font-size: 12.5px; color: var(--soft); }
+  .clients { margin-top: 16px; display: flex; justify-content: center; flex-wrap: wrap; gap: 14px 30px; }
+  .client { display: inline-flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 600; color: #3a4257; }
+  .client svg { width: 20px; height: 20px; flex: none; }
+
+  /* links under clients */
+  .links { margin-top: 38px; display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; }
+  .link-btn {
+    height: 38px; padding: 0 16px; border-radius: 10px; border: 1px solid var(--line); background: #fff; color: #3a4257;
+    font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: border-color .15s, color .15s, transform .1s;
+  }
+  .link-btn:hover { border-color: #cfd5e4; color: var(--ink); }
+  .link-btn:active { transform: scale(.98); }
+
+  /* modal */
+  .overlay {
+    position: fixed; inset: 0; z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px;
+    background: rgba(21, 26, 42, .38); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+  }
+  .overlay.open { display: flex; animation: fade .18s ease; }
+  @keyframes fade { from { opacity: 0; } }
+  @keyframes rise { from { opacity: 0; transform: translateY(14px) scale(.985); } }
+  .modal {
+    width: 100%; max-width: 700px; max-height: min(86vh, 820px); display: flex; flex-direction: column;
+    background: #fff; border-radius: 22px; border: 1px solid var(--line); text-align: left;
+    box-shadow: 0 40px 90px -30px rgba(21, 26, 42, .45); animation: rise .22s ease;
+  }
+  .modal-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 24px 26px 16px; border-bottom: 1px solid var(--line); }
+  .modal-head h2 { font-size: 22px; font-weight: 600; letter-spacing: -.03em; }
+  .modal-head p { margin-top: 6px; font-size: 12.5px; color: var(--soft); }
+  .x { flex: none; width: 34px; height: 34px; border: none; border-radius: 10px; background: var(--field); color: var(--muted); font-size: 20px; line-height: 1; cursor: pointer; transition: background .15s, color .15s; }
+  .x:hover { background: #e7eaf2; color: var(--ink); }
+  .modal-body { padding: 8px 26px 26px; overflow-y: auto; font-size: 14.5px; line-height: 1.7; color: #4a5368; }
+  .modal-body h3 { margin: 22px 0 8px; font-size: 14px; font-weight: 700; letter-spacing: -.01em; color: var(--ink); }
+  .modal-body p, .modal-body li { margin-bottom: 6px; }
+  .modal-body ul { padding-left: 20px; }
+  .modal-body ul.num { list-style: none; padding-left: 0; }
+  .modal-body ul.num b { color: var(--ink); margin-right: 6px; }
+  .modal-body a { color: var(--ink); font-weight: 600; }
+  .modal-body code { background: var(--field); border-radius: 6px; padding: 1px 6px; font-size: 13px; color: var(--ink); }
+  .modal-body details { border: 1px solid var(--line); border-radius: 14px; margin-top: 10px; background: #fff; transition: border-color .15s; }
+  .modal-body details[open] { border-color: #cfd5e4; background: #fafbfd; }
+  .modal-body summary { list-style: none; cursor: pointer; padding: 14px 44px 14px 16px; font-weight: 600; color: var(--ink); position: relative; }
+  .modal-body summary::-webkit-details-marker { display: none; }
+  .modal-body summary::after { content: '+'; position: absolute; right: 16px; top: 50%; transform: translateY(-50%); font-size: 20px; font-weight: 400; color: var(--soft); }
+  .modal-body details[open] summary::after { content: '–'; }
+  .modal-body details > div { padding: 0 16px 14px; }
+  body.lock { overflow: hidden; }
+
+  /* footer */
+  footer .container { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 28px 0 22px; border-top: 1px solid var(--line); font-size: 11.5px; color: var(--soft); }
+  footer { padding: 0 20px; }
+
+  @media (max-width: 520px) {
+    .access .row { flex-direction: column; }
+    .access button { width: 100%; }
+    .lead { font-size: 16px; }
+  }
+
+  /* promo + support */
+  .promo { margin: 26px auto 0; max-width: 560px; padding: 20px 22px; border: 1px solid var(--line); border-radius: 18px; background: #fff; text-align: left; }
+  .promo h3 { font-size: 15px; font-weight: 700; letter-spacing: -.01em; color: var(--ink); }
+  .promo p { margin-top: 6px; font-size: 13px; line-height: 1.6; color: var(--soft); }
+  .promo .pbtns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .promo .pbtns a { display: inline-flex; align-items: center; padding: 10px 16px; border-radius: 12px; font-size: 13.5px; font-weight: 600; text-decoration: none; background: var(--ink); color: #fff; }
+  .promo .pbtns a.alt { background: var(--field); color: var(--ink); }
+  .support-line { margin-top: 18px; font-size: 13px; color: var(--soft); text-align: center; }
+  .support-line a { color: var(--ink); font-weight: 600; }
 </style>
+<link rel="stylesheet" href="theme.css">
+<script src="theme.js"></script>
+<script src="freeze-notice.js"></script>
+
+
+
 </head>
 <body>
-<div class="glow"><i></i><i></i></div>
 
-<section class="view on" id="v0">
-  <h1 class="brand" aria-label="Stark Sign"><span class="st shine"></span> <span class="sg"></span></h1>
-  <div class="card c-blue"><h2>Подпись IPA через Apple ID</h2><p>Подпиши IPA с бесплатным Apple ID. Подтверди UDID и введи код 2FA, если Apple его запросит.</p></div>
-  <div class="card c-sky"><h2>Добавь на экран «Домой»</h2><p>Safari → «Поделиться» → «На экран Домой». Приложение откроется без адресной строки.</p></div>
-  <div class="card c-dark"><div class="row"><div class="ico">S</div><div><b>Stark Sign</b><small>Версия 0.1 · бета</small></div><div class="pill">Бета</div></div></div>
-</section>
+<header>
+  <div class="container">
+    <a class="brand" href="/"><span class="brand-mark">W</span>White API</a>
+    <div class="lang" role="group" aria-label="Language">
+      <button type="button" id="langRu" onclick="setLang('ru')">RU</button>
+      <button type="button" id="langEn" onclick="setLang('en')">EN</button>
+    </div>
+  </div>
+</header>
 
-<section class="view" id="v1">
-  <h1>Приложения</h1>
-  <div class="form">
-    <label>Файл .ipa<input type="file" id="ipa" accept=".ipa"></label>
-    <label>Сертификат<select id="certsel"></select></label>
-    <button class="btn" id="sign">Подписать</button>
-    <div class="bar" id="bar"><i></i></div>
-  </div>
-  <p class="sub">На устройстве · установленные</p>
-  <div id="signed"></div>
-  <p class="sub">На сервере <button class="mini" id="refreshApps">Обновить</button></p>
-  <div id="serverApps"><p class="hint">Загрузка приложений…</p></div>
-</section>
+<main>
+  <section class="hero">
+    <div class="eyebrow" data-i18n="eyebrow">Ваш доступ к AI начинается здесь</div>
+    <h1>AI API <span data-i18n="h1b">за минуту.</span></h1>
+    <p class="lead" data-i18n="lead">Введите код доступа, полученный после покупки. Мы подготовим кабинет, ключ и баланс автоматически.</p>
 
-<section class="view" id="v2">
-  <h1>Сертификаты</h1>
-  <p class="sub">Общие <button class="mini" id="refresh">Обновить</button></p>
-  <div id="repo"><p class="hint">Загрузка…</p></div>
-  <p class="sub">Мой сертификат</p>
-  <div class="form">
-    <label>Файл .p12<input type="file" id="p12" accept=".p12,.pfx"></label>
-    <label>Пароль<input type="password" id="pass" placeholder="Пароль сертификата" autocomplete="off"></label>
-    <label>Профиль .mobileprovision (необязательно)<input type="file" id="prov" accept=".mobileprovision"></label>
-    <button class="btn" id="add">Добавить сертификат</button>
-  </div>
-  <div id="mine"></div>
-  <p class="sub">Apple ID</p>
-  <button class="btn apple" id="appleToggle" style="width:100%;margin-bottom:12px"><svg viewBox="0 0 24 24"><path d="M16.4 12.6c0-2.4 2-3.5 2.1-3.6-1.1-1.700-2.900-1.900-3.500-1.900-1.500-.2-2.900.9-3.700.9s-1.900-.9-3.200-.8c-1.600 0-3.100.9-4 2.400-1.700 3-.4 7.300 1.200 9.700.8 1.200 1.800 2.500 3 2.400 1.200 0 1.700-.8 3.100-.8s1.900.8 3.200.8 2.100-1.200 2.900-2.400c.9-1.300 1.300-2.700 1.300-2.700s-2.500-1-2.400-4zM14 5.400c.7-.8 1.100-1.900 1-3-1 0-2.100.7-2.800 1.500-.6.700-1.100 1.800-1 2.900 1.100.1 2.100-.6 2.800-1.400z"/></svg>Вход по Apple</button>
-  <div class="form" id="appleBox" hidden>
-    <div class="warn">⚠️ Внимание: приложения с бесплатным Apple ID не ставятся из Safari. Установка работает только способом AltStore / SideStore — подпиши здесь, а поставь через них.</div>
-    <label>Apple ID<input type="email" id="aid" placeholder="name@icloud.com" autocomplete="off"></label>
-    <label>Пароль<input type="password" id="apw" autocomplete="off"></label>
-    <button class="btn" id="login">Подписать IPA через Apple ID</button>
-    <p class="hint">Введи Apple ID и пароль. Если Apple запросит двухфакторный код, введи его здесь. Пароль не сохраняется в браузере.</p>
-    <div id="appleStatus" class="hint"></div>
-    <label id="appleCodeWrap" style="display:none">Код подтверждения Apple<input id="appleCode" inputmode="numeric" autocomplete="one-time-code" placeholder="6 цифр"></label>
-    <button class="btn" id="submitAppleCode" style="display:none">Подтвердить код</button>
-    <button class="btn" id="getudid">Получить UDID автоматически</button>
-    <div id="udidstatus" class="hint"></div>
-  </div>
-  <p class="sub">AltStore .p12</p>
-  <div class="form">
-    <p class="hint">Подпись без входа в Apple ID. Выбери экспортированный из AltStore сертификат .p12, его пароль и совместимый профиль .mobileprovision.</p>
-    <label>Сертификат AltStore (.p12)<input type="file" id="altP12" accept=".p12,.pfx"></label>
-    <label>Пароль .p12<input type="password" id="altPass" autocomplete="off" placeholder="Пароль сертификата"></label>
-    <label>Профиль (.mobileprovision)<input type="file" id="altProv" accept=".mobileprovision"></label>
-    <button class="btn" id="altSign">Подписать через AltStore .p12</button>
-    <div id="altStatus" class="hint"></div>
-  </div>
-  <p class="sub">Source для установки</p>
-  <div class="form">
-    <p class="hint" style="margin:0">Для бесплатного Apple ID: подключи каталог Stark Sign как Source — приложение подпишет и поставит SideStore или AltStore.</p>
-    <a class="btn" id="addAltStore" href="#">Подключить в AltStore Source</a>
-    <a class="btn" id="addSideStore" href="#">Sideload для Source</a>
-    <button class="btn ghost" id="copySource">Копировать ссылку на Source</button>
-  </div>
-</section>
+    <div class="access">
+      <label for="code" data-i18n="label">Код доступа</label>
+      <div class="row">
+        <input id="code" type="text" placeholder="TC-XXXX-XXXX-XXXX" maxlength="17" autocomplete="off" autocapitalize="characters" spellcheck="false">
+        <button id="go" type="button" data-i18n="btn">Активировать / войти</button>
+      </div>
+      <div class="msg" id="msg"></div>
+</div>
 
-<section class="view" id="v3">
-  <h1>Настройки</h1>
-    <div class="set">
-    <button class="rowbtn" id="openProf"><span class="av" id="avSet">?</span><span id="profName">Профиль</span><em>Войти ›</em></button>
-  </div>
-  <div class="set">
-    <div>Тема <span class="themes" data-themes></span></div>
-    <div>Анимации <span class="sw on" data-k="anim"></span></div>
-  </div>
-  <div class="set"><div>Версия <em>0.1</em></div><div>Сборка <em>Stark Sign</em></div></div>
-</section>
+    <div class="links">
+      <button type="button" class="link-btn" data-open="faq" data-i18n="faqBtn">FAQ</button>
+      <button type="button" class="link-btn" data-open="tos" data-i18n="tosBtn">Пользовательское соглашение</button>
+    </div>
 
+    <div class="promo">
+      <h3 data-i18n="promoT">White Code — AI-помощник для кода</h3>
+      <p data-i18n="promoS">Приложение для телефона (iPhone и Android) и для ПК. Работает с твоим ключом White API.</p>
+      <div class="pbtns">
+        <a href="/app/" data-i18n="promoPhone">Открыть на телефоне</a>
+        <a href="/WhiteCode.exe" download data-i18n="promoPc">Скачать для ПК</a>
+        <a class="alt" href="guide.html" data-i18n="promoGuide">Инструкции</a>
+      </div>
+    </div>
+    <p class="support-line"><span data-i18n="supportL">Поддержка:</span> <a href="https://t.me/CTPAX_SPLIT" target="_blank" rel="noopener">Telegram @CTPAX_SPLIT</a> · <a href="mailto:whiteapiofficial@mail.ru">whiteapiofficial@mail.ru</a></p>
+  </section>
+</main>
 
-<section id="prof">
-  <div class="top"><b style="font-size:20px">Профиль</b><button class="mini" id="profClose">Закрыть</button></div>
-  <div id="profOut">
-    <div class="seg"><button class="on" data-m="in">Войти</button><button data-m="up">Создать</button></div>
-    <div class="form"><label>Ник<input id="pn" autocapitalize="off" autocorrect="off" autocomplete="off"></label>
-      <label>Пароль<input id="pp" type="password" autocomplete="off"></label>
-      <button class="btn" id="pgo">Войти</button><div class="hint" id="perr"></div></div>
-    <p class="hint">Аккаунт хранится на этом устройстве.</p>
+<div class="overlay" id="ov-tos" role="dialog" aria-modal="true" aria-labelledby="tosT">
+  <div class="modal">
+    <div class="modal-head">
+      <div><h2 id="tosT" data-i18n="tosTitle"></h2><p data-i18n="tosSub"></p></div>
+      <button type="button" class="x" data-close aria-label="Close">×</button>
+    </div>
+    <div class="modal-body" data-i18n-html="tosBody"></div>
   </div>
-  <div id="profIn" hidden>
-    <div class="big" id="pav"></div><div class="nm" id="pnm"></div>
-    <p class="sub">Apple ID</p>
-    <div class="form"><input id="pappleid" type="email" placeholder="name@icloud.com" autocomplete="off"><button class="btn ghost" id="psaveid">Сохранить ID</button></div>
-    <p class="sub">Установленные приложения</p><div id="papps"></div>
-    <p class="sub">Оформление</p>
-    <div class="set"><div>Тема <span class="themes" data-themes></span></div><div>Анимации <span class="sw on" data-k="anim"></span></div></div>
-    <button class="btn ghost" id="plogout" style="width:100%">Выйти</button>
+</div>
+
+<div class="overlay" id="ov-faq" role="dialog" aria-modal="true" aria-labelledby="faqT">
+  <div class="modal">
+    <div class="modal-head">
+      <div><h2 id="faqT" data-i18n="faqTitle"></h2><p data-i18n="faqSub"></p></div>
+      <button type="button" class="x" data-close aria-label="Close">×</button>
+    </div>
+    <div class="modal-body" data-i18n-html="faqBody"></div>
   </div>
-</section>
-<div id="toast"></div>
-<nav>
-  <div class="bub"></div>
-  <button class="on" data-i="0"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="4"/><path d="M8 8h8M8 12h8"/></svg>Главная</button>
-  <button data-i="1"><svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg>Приложения</button>
-  <button data-i="2"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg>Сертификаты</button>
-  <button data-i="3"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v3M12 18.2v3M2.8 12h3M18.2 12h3M5.5 5.5l2.1 2.1M16.4 16.4l2.1 2.1M18.5 5.5l-2.1 2.1M7.6 16.4l-2.1 2.1"/></svg>Настройки</button>
-</nav>
+</div>
+
+<footer>
+  <div class="container">
+    <span data-i18n="copy">© 2026 White API</span>
+    <span data-i18n="secure">API работает через защищённое соединение.</span>
+    <span><a href="https://t.me/CTPAX_SPLIT" target="_blank" rel="noopener" style="color:inherit">Telegram</a> · <a href="mailto:whiteapiofficial@mail.ru" style="color:inherit">whiteapiofficial@mail.ru</a></span>
+  </div>
+</footer>
 
 <script>
-// letter-by-letter title
-const h=document.querySelector('.brand');let n=0;
-[['st','Stark'],['sg','Sign']].forEach(([c,w])=>{
-  const el=h.querySelector('.'+c);
-  [...w].forEach(ch=>{const s=document.createElement('span');s.textContent=ch;s.style.setProperty('--i',n++);el.appendChild(s)});
+/* ссылка на твой FunPay */
+const FUNPAY_URL = 'https://funpay.com/users/21599088/';
+
+const input = document.getElementById('code');
+const btn = document.getElementById('go');
+const msg = document.getElementById('msg');
+const RE = /^TC-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/;
+
+const I18N = {
+  ru: {
+    title: 'White API — AI API за минуту',
+    desc: 'Введите код доступа, полученный после покупки. Мы подготовим кабинет, ключ и баланс автоматически.',
+    eyebrow: 'Ваш доступ к AI начинается здесь', h1b: 'за минуту.',
+    lead: 'Введите код доступа, полученный после покупки. Мы подготовим кабинет, ключ и баланс автоматически.',
+    label: 'Код доступа', btn: 'Активировать / войти',
+    clients: 'Подключайте то, что вам удобно',
+    copy: '© 2026 White API', secure: 'API работает через защищённое соединение.',
+    empty: 'Введите код доступа', format: 'Неверный формат. Пример: TC-2UQN-4EDP-DX5E',
+    notfound: 'Код не найден', rate: 'Слишком много попыток. Попробуйте через несколько минут', revoked: 'Код заблокирован', down: 'Сервер пока недоступен',
+    promoT: 'White Code — AI-помощник для кода', promoS: 'Приложение для телефона (iPhone и Android) и для ПК. Работает с твоим ключом White API.', promoPhone: 'Открыть на телефоне', promoPc: 'Скачать для ПК', promoGuide: 'Инструкции', supportL: 'Поддержка:',
+    tosBtn: 'Пользовательское соглашение', faqBtn: 'FAQ',
+    tosTitle: 'Пользовательское соглашение',
+    tosSub: 'Редакция от 07.10.2026 · применяется ко всем покупкам ключей',
+    tosBody: `
+<h3>1. Предмет соглашения</h3>
+<p>Сервис «White API» (далее — Сервис) предоставляет доступ к API языковых моделей через персональные ключи вида <code>TC-XXXX-XXXX-XXXX</code>. Оплачивая ключ на FunPay, покупатель подтверждает, что ознакомился с настоящим соглашением и принимает его условия в полном объёме.</p>
+<h3>2. Условия предоставления доступа</h3>
+<ul>
+<li>Ключ предоставляется на условиях выбранного тарифа: пакет токенов либо безлимитный доступ на указанный срок.</li>
+<li>Остаток токенов и срок действия доступны для проверки на сайте в личном кабинете.</li>
+<li>Ключ является персональным. Передача третьим лицам и перепродажа запрещены.</li>
+</ul>
+<h3>3. О моделях</h3>
+<p>Названия моделей в каталоге Сервиса являются коммерческими обозначениями тарифов. Конкретная языковая модель, обрабатывающая запросы, определяется провайдером вычислений и оператором Сервиса и может быть заменена на аналогичную или более производительную без предварительного уведомления — в том числе в целях поддержания стабильности и скорости работы. Такая замена не изменяет условия тарифа и не является основанием для возврата средств.</p>
+<h3>4. Возврат средств</h3>
+<ul class="num">
+<li><b>4.1</b>Возврат возможен, если ключ не был активирован или по состоянию на момент обращения израсходовано менее 2 000 000 токенов.</li>
+<li><b>4.2</b>Если израсходовано 2 000 000 токенов или более, услуга считается оказанной в полном объёме и возврату не подлежит.</li>
+<li><b>4.3</b>Для ключей с безлимитным доступом по времени возврат возможен в течение первых 24 часов после выдачи, при условии соблюдения лимита из пункта 4.1.</li>
+<li><b>4.4</b>Все возвраты производятся через систему споров FunPay.</li>
+</ul>
+<h3>5. Ограничение ответственности</h3>
+<ul>
+<li>Сервис предоставляется «как есть». Оператор не гарантирует 100% бесперебойную работу и не отвечает за сбои на стороне провайдеров вычислений.</li>
+<li>Сервис не несёт ответственности за содержание ответов моделей и за решения, принятые на их основе.</li>
+<li>Запрещается использование Сервиса для противоправной деятельности. При нарушении ключ блокируется без возврата средств.</li>
+</ul>
+<h3>6. Прочее</h3>
+<p>Оператор вправе изменять настоящее соглашение; актуальная редакция всегда доступна на этой странице.</p>`,
+    faqTitle: 'FAQ', faqSub: 'Частые вопросы',
+    faqBody: `
+<details><summary>Что я получаю после покупки?</summary><div>Персональный API-ключ вида <code>TC-XXXX-XXXX-XXXX</code> на выбранный тариф: либо пакет токенов, либо безлимит на N дней. Ключ работает во всех OpenAI-совместимых клиентах.</div></details>
+<details><summary>Где купить ключ?</summary><div>Покупка — <b>только на FunPay</b>: <a class="funpay-link" href="#" target="_blank" rel="noopener">ссылка на лот</a>. Там безопасная сделка: деньги замораживаются, пока ты не подтвердишь получение ключа.</div></details>
+<details><summary>Как узнать, сколько токенов осталось?</summary><div>Введи код доступа на этой странице — откроется личный кабинет: остаток токенов, твой API-ключ и доступные модели.</div></details>
+<details><summary>Токены закончились / срок вышел — что делать?</summary><div>Просто оформи новый заказ на FunPay — можно продлить тот же ключ или получить новый.</div></details>
+<details><summary>Ключ не работает, что проверить?</summary><div>1) Правильно ли указан Base URL (должен заканчиваться на <b>/v1</b>). 2) Остались ли токены — проверь баланс в личном кабинете. 3) Верное ли имя модели (например <b>claude-opus-5-5</b>).</div></details>
+<details><summary>Нужна помощь?</summary><div>Напиши в поддержку: <a href="https://t.me/CTPAX_SPLIT" target="_blank" rel="noopener">Telegram @CTPAX_SPLIT</a> или на почту <a href="mailto:whiteapiofficial@mail.ru">whiteapiofficial@mail.ru</a>.</div></details>
+<details><summary>Need help?</summary><div>Contact support: <a href="https://t.me/CTPAX_SPLIT" target="_blank" rel="noopener">Telegram @CTPAX_SPLIT</a> or email <a href="mailto:whiteapiofficial@mail.ru">whiteapiofficial@mail.ru</a>.</div></details>`,
+  },
+  en: {
+    title: 'White API — AI API in a minute',
+    desc: 'Enter the access code you received after purchase. We will set up your account, key and balance automatically.',
+    eyebrow: 'Your access to AI starts here', h1b: 'in a minute.',
+    lead: 'Enter the access code you received after purchase. We will set up your account, key and balance automatically.',
+    label: 'Access code', btn: 'Activate / sign in',
+    clients: 'Connect whatever works for you',
+    copy: '© 2026 White API', secure: 'API runs over a secure connection.',
+    empty: 'Enter your access code', format: 'Invalid format. Example: TC-2UQN-4EDP-DX5E',
+    notfound: 'Code not found', rate: 'Too many attempts. Please try again in a few minutes', revoked: 'This code is blocked', down: 'Server is unavailable for now',
+    promoT: 'White Code — your AI coding assistant', promoS: 'Phone app (iPhone and Android) and PC app. Works with your White API key.', promoPhone: 'Open on phone', promoPc: 'Download for PC', promoGuide: 'Instructions', supportL: 'Support:',
+    tosBtn: 'Terms of Service', faqBtn: 'FAQ',
+    tosTitle: 'Terms of Service',
+    tosSub: 'Effective 07.10.2026 · applies to all key purchases',
+    tosBody: `
+<h3>1. Subject of the agreement</h3>
+<p>The "White API" service (the "Service") provides access to language model APIs through personal keys in the format <code>TC-XXXX-XXXX-XXXX</code>. By paying for a key on FunPay, the buyer confirms that they have read this agreement and accept its terms in full.</p>
+<h3>2. Terms of access</h3>
+<ul>
+<li>The key is provided under the selected plan: a token pack or unlimited access for the stated period.</li>
+<li>The remaining tokens and expiration date can be checked on the site in the personal account.</li>
+<li>The key is personal. Transfer to third parties and resale are prohibited.</li>
+</ul>
+<h3>3. About models</h3>
+<p>Model names in the Service catalog are commercial plan designations. The specific language model that processes requests is determined by the compute provider and the Service operator, and may be replaced with a similar or higher-performance one without prior notice — including to maintain stability and speed. Such a replacement does not change the plan terms and is not grounds for a refund.</p>
+<h3>4. Refunds</h3>
+<ul class="num">
+<li><b>4.1</b>A refund is possible if the key has not been activated, or if fewer than 2,000,000 tokens have been used at the time of the request.</li>
+<li><b>4.2</b>If 2,000,000 tokens or more have been used, the service is considered fully rendered and is non-refundable.</li>
+<li><b>4.3</b>For time-based unlimited keys, a refund is possible within the first 24 hours after issue, provided the limit in clause 4.1 is respected.</li>
+<li><b>4.4</b>All refunds are processed through the FunPay dispute system.</li>
+</ul>
+<h3>5. Limitation of liability</h3>
+<ul>
+<li>The Service is provided "as is". The operator does not guarantee 100% uninterrupted operation and is not responsible for failures on the compute providers' side.</li>
+<li>The Service is not responsible for the content of model responses or for decisions made based on them.</li>
+<li>Using the Service for unlawful activity is prohibited. In case of a violation the key is blocked without a refund.</li>
+</ul>
+<h3>6. Miscellaneous</h3>
+<p>The operator may amend this agreement; the current version is always available on this page.</p>`,
+    faqTitle: 'FAQ', faqSub: 'Frequently asked questions',
+    faqBody: `
+<details><summary>What do I get after purchase?</summary><div>A personal API key like <code>TC-XXXX-XXXX-XXXX</code> for the chosen plan: either a token pack or unlimited access for N days. The key works in all OpenAI-compatible clients.</div></details>
+<details><summary>Where do I buy a key?</summary><div>Purchase is <b>only on FunPay</b>: <a class="funpay-link" href="#" target="_blank" rel="noopener">lot link</a>. Safe deal there: the money is frozen until you confirm you received the key.</div></details>
+<details><summary>How do I check my remaining tokens?</summary><div>Enter your access code on this page — your account opens with the token balance, your API key and available models.</div></details>
+<details><summary>Tokens ran out / time expired — what to do?</summary><div>Just place a new order on FunPay — you can extend the same key or get a new one.</div></details>
+<details><summary>The key doesn't work, what should I check?</summary><div>1) Is the Base URL correct (it must end with <b>/v1</b>). 2) Are there tokens left — check your balance in the account. 3) Is the model name correct (e.g. <b>claude-opus-5-5</b>).</div></details>`,
+  }
+};
+let LANG = (() => { try { return localStorage.getItem('white_lang'); } catch { return null; } })() || 'ru';
+if (!I18N[LANG]) LANG = 'ru';
+const t = k => I18N[LANG][k];
+function setLang(l) {
+  LANG = l;
+  try { localStorage.setItem('white_lang', l); } catch {}
+  document.documentElement.lang = l;
+  document.title = t('title');
+  document.querySelector('meta[name="description"]').setAttribute('content', t('desc'));
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-html]').forEach(el => { el.innerHTML = t(el.dataset.i18nHtml); });
+  document.querySelectorAll('.funpay-link').forEach(a => a.href = FUNPAY_URL);
+  document.getElementById('langRu').classList.toggle('active', l === 'ru');
+  document.getElementById('langEn').classList.toggle('active', l === 'en');
+  msg.classList.remove('show');
+}
+function showMsg(k) { msg.textContent = t(k); msg.classList.add('show'); }
+
+/* автоформат: TC-XXXX-XXXX-XXXX */
+input.addEventListener('input', () => {
+  let v = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (v.startsWith('TC')) v = v.slice(2);
+  v = (v.slice(0, 12).match(/.{1,4}/g) || []).join('-');
+  input.value = v ? 'TC-' + v : '';
+  msg.classList.remove('show');
 });
-// tabs
-const views=[...document.querySelectorAll('.view')],btns=[...document.querySelectorAll('nav button')],bub=document.querySelector('.bub');
-function go(i){
-  views.forEach((v,k)=>v.classList.toggle('on',k===i));
-  btns.forEach((b,k)=>b.classList.toggle('on',k===i));
-  bub.style.transform=`translateX(${i*100}%)`;
-  if(navigator.vibrate)navigator.vibrate(8);
-  if(i===2)loadRepo();
-}
-btns.forEach(b=>b.onclick=()=>go(+b.dataset.i));
-document.querySelectorAll('.sw').forEach(s=>s.onclick=()=>s.classList.toggle('on'));
+input.addEventListener('keydown', e => { if (e.key === 'Enter') activate(); });
+btn.addEventListener('click', activate);
 
-const $=q=>document.querySelector(q);
-// Постоянный адрес Railway API. Проверяем сервер при запуске и возвращении в приложение.
-const DEFAULT_SERVER='https://stark-sign-server-production.up.railway.app';
-localStorage.srv=DEFAULT_SERVER;localStorage.removeItem('accessKey');
-/* localStorage.key — это встроенный метод Storage, поэтому ключ доступа храним под другим именем */
-const getKey=()=>'';
-localStorage.removeItem('starkAccountToken'); localStorage.removeItem('accountNick');
-function normalizeServer(value){
-  const u=new URL(String(value||'').trim());
-  if(!['https:','http:'].includes(u.protocol)||u.username||u.password) throw new Error('Нужен корректный HTTPS-адрес сервера');
-  if(u.protocol!=='https:'&&!['localhost','127.0.0.1'].includes(u.hostname)) throw new Error('Сервер должен использовать HTTPS');
-  return u.origin;
-}
-let serverCheckPromise=null,lastServerCheck=0;
-async function detectServer(force=false){
-  if(serverCheckPromise)return serverCheckPromise;
-  if(!force&&Date.now()-lastServerCheck<20000)return localStorage.srv||DEFAULT_SERVER;
-  serverCheckPromise=(async()=>{
-    const saved=localStorage.srv||DEFAULT_SERVER;
-    const candidates=[saved,DEFAULT_SERVER,location.origin].filter((v,i,a)=>v&&a.indexOf(v)===i);
-    const status=$('#serverStatus');
-    if(status)status.textContent='Автоматически ищу рабочий сервер…';
-    for(const candidate of candidates){
-      let base;
-      try{base=normalizeServer(candidate)}catch(_){continue}
-      try{
-        const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),5000);
-        let response;
-        try{response=await fetch(base+'/api/health',{method:'GET',cache:'no-store',headers:{'Accept':'application/json'},signal:controller.signal})}
-        finally{clearTimeout(timer)}
-        const data=await response.json();
-        if(response.ok&&data&&data.ok===true&&data.service==='stark-sign'){
-          localStorage.srv=base;
-          if($('#srv'))$('#srv').value=base;
-          if(status)status.textContent='Сервер подключён: '+new URL(base).host;
-          lastServerCheck=Date.now();
-          return base;
-        }
-      }catch(_){}
-    }
-    lastServerCheck=Date.now();
-    if(status)status.textContent='Сервер не отвечает. Повторю проверку автоматически.';
-    return localStorage.srv||DEFAULT_SERVER;
-  })();
-  try{return await serverCheckPromise}finally{serverCheckPromise=null}
-}
-const getServer=()=>DEFAULT_SERVER;
-// запрет зума двумя пальцами и двойным тапом
-['gesturestart','gesturechange','gestureend'].forEach(t=>document.addEventListener(t,e=>e.preventDefault()));
-document.addEventListener('touchmove',e=>{if(e.touches.length>1)e.preventDefault()},{passive:false});
-// Не отменяем touchend: iOS Safari использует его для синтеза click. Двойной тап не блокируем глобально.
-const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const fmt=b=>b>1048576?(b/1048576).toFixed(1)+' МБ':Math.ceil(b/1024)+' КБ';
-function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),2600)}
-// репозиторий: owner и repo берутся из адреса сайта
-const host=location.hostname,seg=location.pathname.split('/')[1]||'';
-const owner=host.split('.')[0],repo=(seg&&!seg.includes('.'))?seg:host;
-let repoCerts=[],mineCerts=[];
-const row=(n,sub,act)=>`<div class="cert"><div class="ico">P12</div><div><b>${esc(n)}</b><small>${sub}</small></div><div>${act}</div></div>`;
-async function loadRepo(){
-  const el=$('#repo');
-  try{
-    const r=await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/certs?_=${Date.now()}`,{cache:'no-store'});
-    const f=r.ok?await r.json():[];
-    const out=[],rc=[];
-    for(const p of f.filter(x=>/\.p12$/i.test(x.name))){
-      const b=p.name.replace(/\.p12$/i,''),L=b.toLowerCase();
-      const t=f.find(x=>x.name.toLowerCase()===L+'.txt'),m=f.find(x=>x.name.toLowerCase()===L+'.mobileprovision');
-      let pw='';if(t){try{pw=(await(await fetch(t.download_url+'?_='+Date.now())).text()).trim()}catch(e){}}
-      rc.push({label:b,p12:p.download_url,prov:m&&m.download_url,pass:pw});
-      out.push(row(b,fmt(p.size)+(pw?' · пароль: '+esc(pw):''),
-        `<a class="mini" href="${p.download_url}" download>Скачать</a>`+(m?`<a class="mini" href="${m.download_url}" download>Профиль</a>`:'')));
-    }
-    repoCerts=rc;refreshSel();
-    el.innerHTML=out.join('')||'<p class="hint">Администратор пока не добавил сертификаты.</p>';
-  }catch(e){el.innerHTML='<p class="hint">Не удалось загрузить список. Проверь интернет.</p>'}
-}
-// свои сертификаты хранятся только на этом устройстве
-const db=new Promise((ok,no)=>{const r=indexedDB.open('stark-sign',1);r.onupgradeneeded=()=>r.result.createObjectStore('certs',{keyPath:'id',autoIncrement:true});r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)});
-const tx=async(m,f)=>{const d=await db;return new Promise((ok,no)=>{const t=d.transaction('certs',m),q=f(t.objectStore('certs'));t.oncomplete=()=>ok(q.result);t.onerror=()=>no(t.error)})};
-async function loadMine(){
-  try{const l=await tx('readonly',s=>s.getAll());mineCerts=l.map(c=>({label:c.name+' (мой)',blob:c.p12,pass:c.pass,provBlob:c.prov}));refreshSel();
-  $('#mine').innerHTML=l.map(c=>row(c.name,fmt(c.size)+(c.prov?' · с профилем':''),`<button class="mini" data-del="${c.id}">Удалить</button>`)).join('')||'<p class="hint">Своих сертификатов пока нет.</p>'}catch(e){}
-}
-$('#add').onclick=async()=>{
-  const f=$('#p12').files[0];if(!f)return toast('Выбери файл .p12');
-  try{await tx('readwrite',s=>s.add({name:f.name,size:f.size,pass:$('#pass').value,p12:f,prov:$('#prov').files[0]||null}));
-  $('#p12').value=$('#pass').value=$('#prov').value='';toast('Сертификат добавлен');loadMine()}catch(e){toast('Не удалось сохранить')}
-};
-$('#mine').onclick=async e=>{const id=e.target.dataset.del;if(!id)return;await tx('readwrite',s=>s.delete(+id));toast('Сертификат удалён');loadMine()};
-let applePoll=null;
-async function watchAppleJob(id,srv){
-  clearInterval(applePoll);
-  const status=$('#appleStatus'),codeWrap=$('#appleCodeWrap'),codeBtn=$('#submitAppleCode');
-  const check=async()=>{
-    try{
-      const headers={};if(getKey())headers['x-key']=getKey();
-      const r=await fetch(srv+'/api/apple/status/'+id,{headers});
-      if(r.status===404){clearInterval(applePoll);localStorage.removeItem('appleJob');localStorage.removeItem('appleServer');codeWrap.style.display='none';codeBtn.style.display='none';if(!window.appleUploading)status.textContent='';return;}
-      const j=await r.json();
-      status.textContent=j.message||j.error||'Обработка…';
-      if(j.status==='awaiting_code'){codeWrap.style.display='grid';codeBtn.style.display='block';}
-      if(j.status==='complete'){
-        clearInterval(applePoll);codeWrap.style.display='none';codeBtn.style.display='none';
-        status.textContent='Подписано: ';
-        const install=document.createElement('a');install.className='inst';install.href='itms-services://?action=download-manifest&url='+encodeURIComponent(srv+'/api/apple/manifest/'+id+'.plist');install.textContent='Установить на iPhone';
-        status.append(install);
-        toast('IPA успешно подписан');
-      }
-      if(j.status==='error'){clearInterval(applePoll);status.textContent='Ошибка: '+(j.error||j.message);codeWrap.style.display='none';codeBtn.style.display='none';}
-    }catch(e){status.textContent='Потеряно соединение с сервером';}
-  };
-  await check();applePoll=setInterval(check,2000);
-}
-$('#login').onclick=async()=>{
-  const f=$('#ipa').files[0],appleId=$('#aid').value.trim(),password=$('#apw').value;
-  const srv=getServer();
-  const udid=localStorage.udidValue||'';
-  if(!f)return toast('Сначала выбери IPA во вкладке «Приложения»');
-  if(!udid)return toast('Сначала получи UDID автоматически');
-  if(!appleId||!password)return toast('Введи Apple ID и пароль');
-  const btn=$('#login'),status=$('#appleStatus');
-  try{
-    btn.disabled=true;btn.textContent='Подключаюсь к Apple…';status.textContent='Запускаю защищённую сессию…';
-    window.appleUploading=true;clearInterval(applePoll);localStorage.removeItem('appleJob');localStorage.removeItem('appleServer');
-    status.textContent='Читаю IPA с устройства…';
-    let blob;
-    try{const buf=await f.arrayBuffer();if(!buf.byteLength)throw Error('файл пустой');blob=new Blob([buf],{type:'application/octet-stream'});}
-    catch(e){throw Error('Не удалось прочитать IPA: '+(e.message||e)+'. Если файл в iCloud, скачай его на iPhone и выбери заново.');}
-    const fd=new FormData();fd.append('appleId',appleId);fd.append('password',password);fd.append('udid',udid);fd.append('ipa',blob,f.name||'app.ipa');
-    const headers={};if(getKey())headers['x-key']=getKey();
-    const j=await new Promise((ok,no)=>{const x=new XMLHttpRequest();x.open('POST',srv+'/api/apple/start');if(getKey())x.setRequestHeader('x-key',getKey());
-      x.upload.onprogress=e=>{if(e.lengthComputable)status.textContent='Загружаю IPA: '+Math.round(e.loaded/e.total*100)+'%'};
-      x.onload=()=>{let d=null;try{d=JSON.parse(x.responseText)}catch(_){}if(x.status>=200&&x.status<300&&d)ok(d);else no(Error((d&&d.error)||('Ошибка сервера HTTP '+x.status)))};
-      x.onerror=()=>no(Error('Загрузка IPA прервалась. Проверь интернет и размер файла'));x.send(fd)});
-    $('#apw').value='';localStorage.appleJob=j.id;localStorage.appleServer=srv;
-    await watchAppleJob(j.id,srv);
-  }catch(e){status.textContent=e.message;toast(e.message);}
-  finally{window.appleUploading=false;btn.disabled=false;btn.textContent='Подписать IPA через Apple ID';}
-};
-$('#altSign').onclick=async()=>{
-  const ipa=$('#ipa').files[0],p12=$('#altP12').files[0],prov=$('#altProv').files[0],pass=$('#altPass').value;
-  const status=$('#altStatus'),btn=$('#altSign');
-  if(!ipa)return toast('Сначала выбери IPA во вкладке «Приложения»');
-  if(!p12)return toast('Выбери .p12, экспортированный из AltStore');
-  if(!prov)return toast('Нужен совместимый .mobileprovision — в .p12 его нет');
-  const srv=getServer();
-  try{
-    btn.disabled=true;btn.textContent='Загружаю сертификат…';status.textContent='Передаю файлы на сервер для подписи…';
-    const fd=new FormData();
-    fd.append('ipa',ipa,ipa.name||'app.ipa');
-    fd.append('p12',p12,p12.name||'altstore.p12');
-    fd.append('prov',prov,prov.name||'profile.mobileprovision');
-    fd.append('pass',pass);
-    const d=await new Promise((ok,no)=>{
-      const x=new XMLHttpRequest();x.open('POST',srv+'/api/sign');
-      if(getKey())x.setRequestHeader('x-key',getKey());
-      x.upload.onprogress=e=>{if(e.lengthComputable)status.textContent='Загрузка: '+Math.round(e.loaded/e.total*100)+'%'};
-      x.onload=()=>{let j={};try{j=JSON.parse(x.responseText)}catch(_){}
-        x.status>=200&&x.status<300?ok(j):no(Error(j.error||'Ошибка сервера HTTP '+x.status))};
-      x.onerror=()=>no(Error('Сервер недоступен'));x.send(fd);
+async function activate() {
+  const code = input.value.trim();
+  if (!code) return showMsg('empty');
+  if (!RE.test(code)) return showMsg('format');
+  btn.disabled = true;
+  try {
+    /* бэкенд подключим позже: POST /api/activate { code } */
+    const r = await fetch('/api/activate', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code })
     });
-    const l=hist();l.unshift({id:d.id,name:d.name,ver:d.version,srv,date:new Date().toLocaleDateString('ru')});
-    localStorage.signed=JSON.stringify(l.slice(0,30));showSigned();
-    status.textContent='Готово: '+(d.name||'приложение')+' подписано сертификатом AltStore.';
-    toast('IPA подписан через AltStore .p12');
-  }catch(e){status.textContent=e.message;toast(e.message)}
-  finally{btn.disabled=false;btn.textContent='Подписать через AltStore .p12'}
-};
-$('#submitAppleCode').onclick=async()=>{
-  const id=localStorage.appleJob,srv=localStorage.appleServer,code=$('#appleCode').value.trim();
-  if(!id||!code)return toast('Введи код Apple');
-  const headers={'Content-Type':'application/json'};if(getKey())headers['x-key']=getKey();
-  try{
-    const r=await fetch(srv+'/api/apple/code/'+id,{method:'POST',headers,body:JSON.stringify({code})}),j=await r.json();
-    if(!r.ok)throw Error(j.error||'Код не принят');
-    $('#appleCode').value='';$('#appleCodeWrap').style.display='none';$('#submitAppleCode').style.display='none';
-    $('#appleStatus').textContent='Код отправлен. Проверяю…';
-  }catch(e){toast(e.message);}
-};
-if(localStorage.appleJob&&localStorage.appleServer)watchAppleJob(localStorage.appleJob,localStorage.appleServer);
-let udidPoll=null;
-$('#getudid').onclick=async()=>{
-  const b=$('#getudid'),out=$('#udidstatus');
-  let srv, startUrl;
-  try{
-    b.disabled=true;b.textContent='Создаю профиль…';out.textContent='Проверяю адрес сервера…';
-    const raw=getServer();
-    let base;
-    try{base=new URL(raw)}catch(_){throw Error('Неверный адрес сервера. Укажи полный адрес, начиная с https://')}
-    if(!['https:','http:'].includes(base.protocol)||base.username||base.password)throw Error('Адрес сервера должен начинаться с https://');
-    if(base.protocol!=='https:'&&!['localhost','127.0.0.1'].includes(base.hostname))throw Error('Для UDID требуется защищённый HTTPS-адрес');
-    srv=base.origin;startUrl=new URL('/api/udid/start',base).href;
-    out.textContent='Отправляю запрос серверу…';
-    let r;
-    try{r=await fetch(startUrl,{method:'POST',headers:{'Accept':'application/json','Cache-Control':'no-store'}})}
-    catch(e){throw Error('Не удалось подключиться к серверу: '+(e.message||'ошибка сети'))}
-    const body=await r.text();let j;
-    try{j=JSON.parse(body)}catch(_){throw Error('Сервер вернул не JSON (HTTP '+r.status+'). Проверь Railway и логи сервера.')}
-    if(!r.ok)throw Error(j.error||('Ошибка сервера HTTP '+r.status));
-    if(!j||typeof j.token!=='string'||!/^[a-f0-9]{64}$/i.test(j.token))throw Error('Сервер вернул некорректный токен UDID');
-    if(typeof j.url!=='string'||!j.url.trim())throw Error('Сервер не вернул ссылку на профиль');
-    let profileUrl;
-    try{profileUrl=new URL(j.url,base)}catch(_){throw Error('Сервер вернул некорректную ссылку профиля')}
-    if(profileUrl.protocol!=='https:'&& !['localhost','127.0.0.1'].includes(profileUrl.hostname))throw Error('Ссылка профиля должна использовать HTTPS');
-    if(profileUrl.username||profileUrl.password)throw Error('Ссылка профиля содержит недопустимые данные');
-    localStorage.udidToken=j.token;localStorage.udidServer=srv;
-    out.textContent='Открой профиль и подтверди установку в Настройках iPhone. Запрос действует 20 минут.';
-    clearInterval(udidPoll);
-    udidPoll=setInterval(async()=>{
-      try{
-        const statusUrl=new URL('/api/udid/status/'+j.token,base).href;
-        const x=await fetch(statusUrl,{headers:{'Accept':'application/json','Cache-Control':'no-store',}});
-        const v=await x.json();
-        if(v.status==='complete'&&/^(?:[A-F0-9]{40}|[A-F0-9]{8}-[A-F0-9]{16})$/i.test(String(v.udid||''))){
-          clearInterval(udidPoll);localStorage.udidValue=v.udid;
-          out.textContent='UDID получен и проверен: '+v.udid;toast('Устройство подтверждено');
-        }else if(x.status===410||x.status===404){clearInterval(udidPoll);out.textContent=v.error||'Запрос UDID истёк. Создай новый.'}
-      }catch(e){out.textContent='Профиль открыт. Ожидаю подтверждение устройства…'}
-    },3000);
-    try{window.location.assign(profileUrl.href)}catch(e){throw Error('Ссылка профиля сформирована, но iPhone не смог её открыть: '+e.message)}
-  }catch(e){out.textContent=e.message||'Неизвестная ошибка';toast(out.textContent)}
-  finally{b.disabled=false;b.textContent='Получить UDID автоматически'}
-};
-if(localStorage.udidToken&&localStorage.udidServer){const t=localStorage.udidToken,s=localStorage.udidServer;const checkUdid=async()=>{try{const r=await fetch(s+'/api/udid/status/'+t,{headers:{}}),v=await r.json();if(v.status==='complete'){clearInterval(udidPoll);localStorage.udidValue=v.udid;$('#udidstatus').textContent='UDID получен и проверен: '+v.udid;}}catch(e){}};checkUdid();udidPoll=setInterval(checkUdid,4000);}
-$('#refresh').onclick=()=>{loadRepo();toast('Список обновлён')};
-setInterval(()=>{if(!document.hidden&&$('#v2').classList.contains('on'))loadRepo()},30000);
-document.addEventListener('visibilitychange',()=>{if(!document.hidden&&$('#v2').classList.contains('on'))loadRepo()});
-const allCerts=()=>[...repoCerts,...mineCerts];
-function refreshSel(){const s=$('#certsel'),v=s.value;s.innerHTML=allCerts().map((c,i)=>`<option value="${i}">${esc(c.label)}</option>`).join('')||'<option value="">Нет сертификатов</option>';if(v)s.value=v}
-const hist=()=>{try{return JSON.parse(localStorage.signed||'[]')}catch(e){return[]}};
-async function loadServerApps(){
-  const box=$('#serverApps'),srv=getServer();
-  box.innerHTML='<p class="hint">Загружаю каталог…</p>';
-  try{
-    const r=await fetch(srv+'/api/apps',{cache:'no-store'});
-    if(!r.ok)throw Error('HTTP '+r.status);
-    const apps=await r.json();
-    box.innerHTML=apps.map(a=>`<div class="app-tile">${a.iconUrl?'<img src="'+esc(srv+a.iconUrl)+'" alt="">':'<div class="app-placeholder">IPA</div>'}<div class="app-info"><b>${esc(a.name)}</b><small>${esc(a.version)} · ${esc(a.bundle)}</small></div><a class="inst sm" href="sidestore://install?url=${encodeURIComponent(srv+'/api/apps/'+a.id+'/download.ipa')}">Установить</a></div>`).join('')||'<p class="hint">На сервере пока нет приложений. Добавь IPA в папку apps в GitHub и дождись деплоя Railway.</p>';
-  }catch(e){box.innerHTML='<p class="hint">Не удалось загрузить каталог: '+esc(e.message)+'</p>'}
+    const j = await r.json();
+    if (!j.ok) return showMsg(j.error === 'rate_limited' ? 'rate' : j.error === 'revoked' ? 'revoked' : 'notfound');
+    if (j.freeze && j.freeze.on && window.WhiteFreeze) await WhiteFreeze.show(j.freeze);
+    location.href = j.redirect || 'cabinet.html';
+  } catch {
+    showMsg('down');
+  } finally { btn.disabled = false; }
 }
-$('#refreshApps').onclick=loadServerApps;
-function setSourceLinks(){const u=getServer()+'/api/source.json',e=encodeURIComponent(u);
-  $('#addSideStore').href='sidestore://source?url='+e;$('#addAltStore').href='altstore://source?url='+e;
-  $('#copySource').onclick=async()=>{try{await navigator.clipboard.writeText(u);$('#copySource').textContent='Скопировано'}catch(_){prompt('Ссылка на источник',u)}};}
-setSourceLinks();
+/* ---------- модальные окна ---------- */
+function openModal(name) {
+  const ov = document.getElementById('ov-' + name);
+  ov.classList.add('open'); document.body.classList.add('lock');
+  ov.querySelector('.modal-body').scrollTop = 0;
+}
+function closeModals() {
+  document.querySelectorAll('.overlay.open').forEach(o => o.classList.remove('open'));
+  document.body.classList.remove('lock');
+}
+document.querySelectorAll('[data-open]').forEach(b => b.addEventListener('click', () => openModal(b.dataset.open)));
+document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', closeModals));
+document.querySelectorAll('.overlay').forEach(o => o.addEventListener('mousedown', e => { if (e.target === o) closeModals(); }));
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModals(); });
 
-function showSigned(){$('#signed').innerHTML=hist().map(h=>`<div class="cert"><div class="ico">IPA</div><div><b>${esc(h.name)}</b><small>${esc(h.ver)} · ${esc(h.date)}</small></div><a class="inst sm" href="itms-services://?action=download-manifest&url=${h.srv}/api/manifest/${h.id}.plist">Установить</a></div>`).join('')||'<p class="hint">Установленных приложений пока нет. Файлы на сервере хранятся 24 часа.</p>'}
-$('#sign').onclick=async()=>{
-  const srv=getServer();
-  const f=$('#ipa').files[0];if(!f)return toast('Выбери файл .ipa');
-  const c=allCerts()[$('#certsel').value];if(!c)return toast('Выбери сертификат');
-  const btn=$('#sign'),bar=$('#bar'),fill=bar.firstElementChild;
-  try{
-    btn.disabled=true;btn.textContent='Готовлю…';
-    const p12=c.blob||await(await fetch(c.p12)).blob();
-    const prov=c.provBlob||(c.prov?await(await fetch(c.prov)).blob():null);
-    if(!prov)throw Error('К сертификату нужен файл .mobileprovision');
-    const fd=new FormData();fd.append('ipa',f);fd.append('p12',p12,'c.p12');fd.append('prov',prov,'p.mobileprovision');fd.append('pass',c.pass||'');
-    bar.style.display='block';
-    const d=await new Promise((ok,no)=>{const x=new XMLHttpRequest();x.open('POST',srv+'/api/sign');if(getKey())x.setRequestHeader('x-key',getKey());
-      x.upload.onprogress=e=>{if(e.lengthComputable){fill.style.width=(e.loaded/e.total*100)+'%';btn.textContent='Загрузка '+Math.round(e.loaded/e.total*100)+'%'}};
-      x.upload.onload=()=>btn.textContent='Подписываю…';
-      x.onload=()=>{let j={};try{j=JSON.parse(x.responseText)}catch(e){}x.status===200?ok(j):no(Error(j.error||'Ошибка сервера '+x.status))};
-      x.onerror=()=>no(Error('Сервер недоступен'));x.send(fd)});
-    const l=hist();l.unshift({id:d.id,name:d.name,ver:d.version,srv,date:new Date().toLocaleDateString('ru')});localStorage.signed=JSON.stringify(l.slice(0,30));
-    showSigned();toast('Готово, нажми «Установить»');
-  }catch(e){toast(e.message)}
-  btn.disabled=false;btn.textContent='Подписать';bar.style.display='none';fill.style.width='0';
-};
-showSigned();
-loadServerApps();
-loadMine();loadRepo();
-detectServer(true);
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)detectServer(true)});
-window.addEventListener('pageshow',()=>detectServer(true));
-if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
-
-/* ===== profile / themes (аккаунты на сервере) ===== */
-(()=>{
-const L=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}},S=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
-const $$=s=>document.querySelector(s),TH={blue:['#1f23ff','#4fb8ff'],violet:['#7a35ff','#c58bff'],green:['#0ea35a','#5af0a0'],orange:['#ff6a1a','#ffc16b'],pink:['#e6246f','#ff8fb8']};
-let prefs=L('ss_prefs',{theme:'blue',anim:true}),user=L('ss_user',null),mode='in',tm;
-const tok=()=>localStorage.getItem('ss_tok')||'';
-async function api(p,body,method){const r=await fetch(getServer()+p,{method:method||(body?'POST':'GET'),headers:{'content-type':'application/json',...(tok()?{authorization:'Bearer '+tok()}:{})},body:body?JSON.stringify(body):undefined,cache:'no-store'});
-  const j=await r.json().catch(()=>({}));if(!r.ok)throw Object.assign(new Error(j.error||('Ошибка '+r.status)),{status:r.status});return j}
-function push(){S('ss_prefs',prefs);if(user){user.prefs=prefs;S('ss_user',user)}clearTimeout(tm);if(!tok())return;tm=setTimeout(()=>api('/api/acc/save',{prefs,appleId:user&&user.appleId,apps:user&&user.apps}).catch(()=>{}),500)}
-function apply(){document.documentElement.dataset.theme=prefs.theme;document.body.classList.toggle('noanim',prefs.anim===false);
-  document.querySelectorAll('.sw[data-k=anim]').forEach(s=>s.classList.toggle('on',prefs.anim!==false));
-  document.querySelectorAll('[data-themes] i').forEach(i=>i.classList.toggle('on',i.dataset.t===prefs.theme))}
-document.querySelectorAll('[data-themes]').forEach(b=>Object.entries(TH).forEach(([k,c])=>{const i=document.createElement('i');i.dataset.t=k;i.style.background=`linear-gradient(135deg,${c[0]},${c[1]})`;i.onclick=()=>{prefs.theme=k;push();apply()};b.appendChild(i)}));
-document.querySelectorAll('.sw[data-k=anim]').forEach(s=>s.addEventListener('click',()=>{prefs.anim=s.classList.contains('on');push();apply()}));
-function render(){const u=tok()&&user;$$('#profOut').hidden=!!u;$$('#profIn').hidden=!u;
-  $$('#profName').textContent=u?u.name:'Профиль';$$('#avSet').textContent=u?u.name[0].toUpperCase():'?';document.querySelector('#openProf em').textContent=u?'›':'Войти ›';
-  if(!u)return;$$('#pav').textContent=u.name[0].toUpperCase();$$('#pnm').textContent=u.name;$$('#pappleid').value=u.appleId||'';
-  $$('#papps').innerHTML=(u.apps||[]).map(a=>`<div class="app-tile"><div class="app-placeholder">IPA</div><div class="app-info"><b>${esc(a.name)}</b><small>${esc(a.ver||'')} · ${esc(a.date||'')}</small></div></div>`).join('')||'<p class="hint">Пока пусто — подписанные приложения появятся здесь.</p>'}
-function merge(){if(!user)return;const have=new Set((user.apps||[]).map(a=>a.id));let ch=false;
-  (typeof hist==='function'?hist():[]).forEach(a=>{if(!have.has(a.id)){(user.apps=user.apps||[]).unshift({id:a.id,name:a.name,ver:a.ver,date:a.date});ch=true}});if(ch)push()}
-async function open(){$$('#prof').classList.add('on');if(tok()){try{user=(await api('/api/acc/me')).user;prefs=user.prefs||prefs;S('ss_user',user);S('ss_prefs',prefs);apply()}catch(e){if(e.status===401){localStorage.removeItem('ss_tok');user=null}}}merge();render()}
-$$('#openProf').onclick=open;$$('#profClose').onclick=()=>$$('#prof').classList.remove('on');
-document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{mode=b.dataset.m;document.querySelectorAll('.seg button').forEach(x=>x.classList.toggle('on',x===b));$$('#pgo').textContent=mode==='in'?'Войти':'Создать аккаунт';$$('#perr').textContent=''});
-$$('#pgo').onclick=async()=>{const e=$$('#perr'),btn=$$('#pgo');e.textContent='';btn.disabled=true;
-  try{const j=await api(mode==='in'?'/api/acc/login':'/api/acc/register',{name:$$('#pn').value,password:$$('#pp').value,prefs});
-    localStorage.setItem('ss_tok',j.token);user=j.user;if(mode==='in')prefs=user.prefs||prefs;S('ss_user',user);S('ss_prefs',prefs);$$('#pp').value='';merge();apply();render()}
-  catch(x){e.textContent=x.status?x.message:'Сервер недоступен, попробуй позже'}btn.disabled=false};
-$$('#psaveid').onclick=()=>{if(!user)return;user.appleId=$$('#pappleid').value.trim();push();toast('Apple ID сохранён')};
-$$('#plogout').onclick=()=>{api('/api/acc/logout',{}).catch(()=>{});localStorage.removeItem('ss_tok');localStorage.removeItem('ss_user');user=null;render()};
-$$('#appleToggle').onclick=()=>{const b=$$('#appleBox');b.hidden=!b.hidden;if(!b.hidden&&user&&user.appleId&&!$$('#aid').value)$$('#aid').value=user.appleId};
-apply();render();
-})();
+setLang(LANG);
 </script>
+</div>
 </body>
 </html>
