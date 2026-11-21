@@ -47,17 +47,6 @@ nav{position:fixed;left:0;right:0;bottom:0;background:var(--bg);display:flex;jus
 nav div{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:13px;font-weight:600;color:#7b8396;width:33%}
 nav div.on{color:#3d8bff}
 
-/* Face ID lock screen */
-#faceLock{position:fixed;inset:0;z-index:99999;background:#10161f;display:flex;align-items:center;justify-content:center;padding:28px;color:#fff;text-align:center}
-#faceLock[hidden]{display:none}
-.face-box{width:100%;max-width:340px;display:flex;flex-direction:column;align-items:center;gap:18px}
-.face-mark{width:76px;height:76px;border:2px solid #3d8bff;border-radius:24px;display:grid;place-items:center;color:#3d8bff;font-size:42px}
-.face-title{font-size:23px;font-weight:700}
-.face-note{color:#8d95a8;font-size:14px;line-height:1.55}
-#faceAction{border:0;border-radius:16px;background:#3d8bff;color:white;font:700 16px Montserrat, sans-serif;padding:16px 22px;width:100%;min-height:54px}
-#faceStatus{color:#ffb6c1;font-size:13px;line-height:1.4;min-height:18px}
-
-
 /* QR payment scanner */
 .wallet-scan-trigger{width:38px;height:38px;border:0;border-radius:13px;background:#202a38;display:grid;place-items:center;padding:7px;margin-right:5px;cursor:pointer;color:#eaf0fa}
 .wallet-scan-trigger svg{width:25px;height:25px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
@@ -77,15 +66,6 @@ nav div.on{color:#3d8bff}
 #qrPaid{position:fixed;inset:0;z-index:100001;background:#080d14f5;display:none;align-items:center;justify-content:center;padding:28px;text-align:center;color:#fff}
 #qrPaid.show{display:flex}.qr-paid-card{width:100%;max-width:330px}.qr-paid-check{width:82px;height:82px;border-radius:50%;background:#20c8751c;color:#35d98a;display:grid;place-items:center;font-size:48px;margin:0 auto 24px;border:2px solid #35d98a}.qr-paid-title{font-size:25px;font-weight:700;margin-bottom:10px}.qr-paid-note{font-size:14px;color:#aab3c2;line-height:1.5}.qr-paid-close{margin-top:28px;width:100%;border:0;border-radius:15px;background:#2fd16f;color:#07140c;padding:16px;font:700 16px Montserrat,-apple-system,sans-serif}
 </style></head><body>
-<div id="faceLock">
- <div class="face-box">
-  <div class="face-mark">⌗</div>
-  <div class="face-title" id="faceTitle">Кошелёк заблокирован</div>
-  <div class="face-note" id="faceNote">Подтвердите вход с помощью Face ID.</div>
-  <button id="faceAction" type="button">Включить Face ID</button>
-  <div id="faceStatus"></div>
- </div>
-</div>
 <div class="app" id="walletApp">
  <div class="top">
   <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFsAAABXCAIAAADklq61AAAE+klEQVR42u2b3W/bVBjG6zipncWu2jjzOtINaSwk6+eyrq3KHRA6Fhi0qlhhmibtCokr/hSuuEDiggkmMSYNMamiU8QukAZr6awmXUmUUsHUoilrnanpFMf1BxdF0WZLi33s47rS+14e2c7jX855z/uc40N08q+2QTwXAUAARIAIEAEiQASIABEgAkSACBA54BF0/giW7UgkU/Ge41GOizAsTdFkMEiSJEEQexdI9XohL9zNzamqivB8kiTfzJwbGDpD0/Rei67rqqqqiiI1pGc7NXFra2P9UblUrNW2nb8O4cT7Miz7VubdU30DgUDrvrZw/15ubhbhV945997ZsfGWl2ma9ufDwi+5n3dqNSdESDrSiXZnqrf/48tXj74Sb/aFlwfHxX6/9yvCD304PRMMtu7LBEHwR7pPnxmpVsXNJxWv88jZsfHJ6RmKorwY2bpu/VqKoianZ6z0KTeJpHr7MxNZi12jGYW8gCbR7o0EQWQmsqnefo9GDcOyn1y+aqUbN0Oq14UHC3dzc7qdf7sZ//y91k5RHBcLhkLWoZx4LVHIC7IsY8+sH0x91DcwZGhUVVVYnF8tl6qiKNXru7uypmlo72/xhQOBQCjUTofDXdHoyUQyPTxKkqThsoeFpZ9u/YC3j7BsR/bClGG81La3v/vm68KS8LQqSlJdURR8LJ7LLbqiKJJUf1oV11bL5VIx8XrKkNdih/m8sCjLDYx5JJFMGSZaVVVvXL9WqTze37KqUnl84/o1Q70TCAQSyRTezBrvOW5oERbn9x1HE4qwON9SsMtEolzM0LJaLvmnADeLiXIcXiIRhjG0VEXRP0TMYiIMi5cITdHmmdU/RMxizIJdJkKaypDdXdk/RMxiyGAQMxHTnK9pmn+ImMWYBbtMxFy5e1B62CpSWgqGFaM2IOItEUMy99VE45ZCe0QMxhzZ4OML5wrtOb2mMVcUxYnBxxfOFRLwjRFkViACRIAIEMEcQdef+P+m5GCaDofxlWFOtk3drEesRGYiOzL2hvWdBJS/MRSK9xxrp6i1v8oHYNT0D572pnsPDKYhjxzMzOqZ2cH0Q+7nEYRNSYTMis9Vga+BPAJEgAgQASL+8jVNz7JXDmByFq64KmSF9uqRtyfO73kWrM7CSThXaG/UGKwEJmfhotlBUGjz24AXDT4+v48czhVCZgUi7hJxZfMdX5jFIHzMYY+IeSazckbAy6nXcyKKYmgJhdp9VFwFQy0Fu0xEakgvz+37G+FD4ZaCXSbybGfH0NIVjfqHSGdX1CS4hpeIuLVpaDmZSPqHiFmMuLWFl8jG+iNDS3p4lOe7/YCD57vTw6MtBbtMpFwqGrI3SZIXL13Zdyg8333x0hXDXKNpWrlUtD1h2XJ6stzguBh/5IX3pyhqKD18KBJpViu4P7MhCIIkSYqiGbbjaDw+MjZ+/v1Jc45fWc4Xlmyv19teeWZY9tPPPm+3cx7NnbOcNrdNG43GV19+gXCK0fbuhCzL1aqYOtVnvVp1uHSAsG2q6/rtH2/+u7Huka8prizn7szaHRrISwd2t011Xc/dmS2uLCOWeWi3/XH/t51aLXthyqPjnHYGy+ztW8g42pzs6W0+qRTyAsOwscO8lREkPFhAGzUMy8Z7jrW8TNO0leX8ze+/RRss6JnVHHBKHtZHgAgQgQAiQASIABEgAkSACBABIkDkQMV/A18w7GYsn10AAAAASUVORK5CYII=" width="30.3" height="29.0" alt="" >
@@ -138,57 +118,6 @@ document.addEventListener("click",function(e){
    if(v>0){total=v;try{localStorage.setItem("w_total",v)}catch(x){}render()}}}});
 render();
 
-// Биометрическая блокировка через WebAuthn (Face ID на поддерживаемых устройствах iPhone).
-(function(){
- const KEY='wallet_face_credential';
- const lock=document.getElementById('faceLock');
- const action=document.getElementById('faceAction');
- const title=document.getElementById('faceTitle');
- const note=document.getElementById('faceNote');
- const status=document.getElementById('faceStatus');
- const wallet=document.getElementById('walletApp');
- const b64u=b=>btoa(String.fromCharCode(...new Uint8Array(b))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
- const fromB64u=s=>Uint8Array.from(atob(s.replace(/-/g,'+').replace(/_/g,'/')+'==='.slice((s.length+3)%4)),c=>c.charCodeAt(0));
- const supported=()=>window.isSecureContext&&!!window.PublicKeyCredential&&!!navigator.credentials;
- function message(t){status.textContent=t;}
- function show(){lock.hidden=false;wallet.style.visibility='hidden';}
- function unlock(){lock.hidden=true;wallet.style.visibility='';}
- async function enable(){
-  if(!supported()){message('Face ID доступен только при открытии сайта по HTTPS в поддерживаемом Safari.');return;}
-  try{
-   message('');
-   const userId=crypto.getRandomValues(new Uint8Array(16));
-   const cred=await navigator.credentials.create({publicKey:{
-    challenge:crypto.getRandomValues(new Uint8Array(32)),
-    rp:{name:'Кошелёк'},
-    user:{id:userId,name:'wallet-user',displayName:'Владелец кошелька'},
-    pubKeyCredParams:[{type:'public-key',alg:-7},{type:'public-key',alg:-257}],
-    authenticatorSelection:{authenticatorAttachment:'platform',residentKey:'preferred',userVerification:'required'},
-    timeout:60000,attestation:'none'
-   }});
-   localStorage.setItem(KEY,b64u(cred.rawId));
-   title.textContent='Face ID включён';note.textContent='Теперь при каждом открытии кошелька потребуется биометрическое подтверждение.';
-   action.textContent='Продолжить';action.onclick=unlock;message('');
-  }catch(e){message(e.name==='NotAllowedError'?'Настройка отменена. Разрешите Face ID и попробуйте ещё раз.':'Не удалось включить Face ID: '+e.message);}
- }
- async function authenticate(){
-  if(!supported()){message('Откройте кошелёк по HTTPS в Safari или как приложение на экране «Домой».');return;}
-  try{
-   message('');
-   const id=fromB64u(localStorage.getItem(KEY));
-   const assertion=await navigator.credentials.get({publicKey:{
-    challenge:crypto.getRandomValues(new Uint8Array(32)),
-    allowCredentials:[{type:'public-key',id}],userVerification:'required',timeout:60000
-   }});
-   if(assertion){unlock();}
-  }catch(e){message(e.name==='NotAllowedError'?'Face ID не подтверждён. Попробуйте ещё раз.':'Ошибка проверки: '+e.message);}
- }
- const saved=localStorage.getItem(KEY);
- if(saved){title.textContent='Кошелёк заблокирован';note.textContent='Посмотрите на iPhone, чтобы подтвердить вход через Face ID.';action.textContent='Войти с Face ID';action.addEventListener('click',authenticate);show();}
- else{title.textContent='Защитить кошелёк';note.textContent='Включите Face ID для блокировки при каждом новом открытии.';action.textContent='Включить Face ID';action.addEventListener('click',enable);show();}
- // Повторно блокируем приложение, когда пользователь возвращается к нему после сворачивания.
- document.addEventListener('visibilitychange',function(){if(document.hidden&&localStorage.getItem(KEY)){title.textContent='Кошелёк заблокирован';note.textContent='Подтвердите вход с помощью Face ID.';action.textContent='Войти с Face ID';show();}});
-})();
 </script>
 <script>
 // Демонстрационный QR-экран: результат не отправляет реальные платежи.
